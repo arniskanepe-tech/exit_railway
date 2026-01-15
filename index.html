@@ -27,7 +27,25 @@
 
       <!-- mazs “hint”, kas parādās tikai stūrī -->
       <div class="disk-hint">Klikšķini, lai atvērtu</div>
+    </
+    <!-- HINT KĀRTIS (3 papildiespējas) -->
+    <div class="hint-stack" id="hintStack" aria-label="Padomi">
+      <button class="hint-card hc-1" type="button" data-hint="0" aria-label="Padoms 1">Padoms 1</button>
+      <button class="hint-card hc-2" type="button" data-hint="1" aria-label="Padoms 2">Padoms 2</button>
+      <button class="hint-card hc-3" type="button" data-hint="2" aria-label="Padoms 3">Padoms 3</button>
     </div>
+
+    <!-- HINT atvērtais skats (pilnekrāna overlays) -->
+    <div class="hint-overlay" id="hintOverlay" hidden>
+      <div class="hint-modal" role="dialog" aria-modal="true" aria-label="Padoms">
+        <div class="hint-modal-head">
+          <div class="hint-modal-title" id="hintModalTitle">Padoms</div>
+          <button class="hint-close" id="hintClose" type="button" aria-label="Aizvērt">×</button>
+        </div>
+        <div class="hint-modal-body" id="hintModalBody"></div>
+      </div>
+    </div>
+div>
 
     <!-- KĀRTS -->
     <section class="task-card" id="taskCard" aria-label="Kārts">

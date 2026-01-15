@@ -259,3 +259,96 @@ html,body{
   color: rgba(0,0,0,0.55);
   font-size: 13px;
 }
+
+
+/* ===== HINT KĀRTIS ===== */
+.hint-stack{
+  position:absolute;
+  left: var(--pad);
+  top: calc(var(--pad) + var(--disk-size) + 22px);
+  width: 128px;
+  height: 96px;
+  z-index: 6;
+  pointer-events: auto;
+}
+
+.hint-card{
+  position:absolute;
+  left: 0;
+  width: 128px;
+  height: 70px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 14px;
+  background: rgba(15,16,20,.72);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+  backdrop-filter: blur(6px);
+
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .2px;
+
+  cursor: pointer;
+  user-select:none;
+}
+
+.hint-card:hover{ transform: translateY(-2px) rotate(var(--rot, 0deg)); }
+
+.hc-1{ top: 0;   z-index: 3; --rot: -2deg; transform: rotate(-2deg); }
+.hc-2{ top: 12px; z-index: 2; --rot:  1deg; transform: rotate(1deg); }
+.hc-3{ top: 24px; z-index: 1; --rot:  3deg; transform: rotate(3deg); }
+
+.hint-overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,.55);
+  padding: 18px;
+}
+
+.hint-modal{
+  width: min(720px, 96vw);
+  max-height: min(85vh, 720px);
+  overflow: auto;
+  border-radius: 18px;
+  background: rgba(15,16,20,.92);
+  border: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 30px 80px rgba(0,0,0,.45);
+  backdrop-filter: blur(10px);
+}
+
+.hint-modal-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
+
+.hint-modal-title{
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.hint-close{
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  color: #fff;
+  cursor:pointer;
+  font-size: 20px;
+  line-height: 0;
+}
+
+.hint-modal-body{
+  padding: 14px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: rgba(255,255,255,.92);
+  white-space: pre-wrap;
+}
