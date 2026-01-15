@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="lv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Disku spēle — 1. lapa</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+  <!-- WELCOME / START -->
+  <div id="welcome" class="welcome" aria-label="Sākuma ekrāns">
+    <div class="welcome-card">
+      <h1 id="welcomeTitle">Čau!</h1>
+      <p class="welcome-sub">Ieraksti atbildi, lai sāktu spēli.</p>
+      <input id="welcomeInput" class="welcome-input" maxlength="2" autocomplete="off" inputmode="text" />
+      <div id="welcomeHint" class="welcome-hint" aria-live="polite"></div>
+      <div class="welcome-foot">Padoms: atbilde ir tikai 2 burti.</div>
+    </div>
+  </div>
+
+
+  <main class="scene" id="scene">
+    <!-- DISKS (sākumā stūrī, lēni griežas) -->
+    <div class="disk-shell disk-corner" id="diskShell" aria-label="Disk">
+      <canvas id="diskCanvas" width="900" height="900"></canvas>
+
+      <!-- mazs “hint”, kas parādās tikai stūrī -->
+      <div class="disk-hint">Klikšķini, lai atvērtu</div>
+    </div>
+
+    <!-- KĀRTS -->
+    <section class="task-card" id="taskCard" aria-label="Kārts">
+      <div class="card-header">
+        <div class="card-title" id="cardTitle">Uzdevums #1</div>
+        <div class="card-subtitle">Mērķis: <span id="targetSymbolLabel">★</span></div>
+      </div>
+
+      <div class="card-body" id="cardBody">
+        <p>Kas par fantastisku Gadu Secību bijusi.</p>
+                <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
+      </div>
+
+      <div class="card-footer">
+        <p class="muted" id="feedback">Uzgriez disku, līdz pretī... <strong>OK</strong>.</p>
+
+        <div class="card-actions">
+          <div class="result-msg" id="resultMsg" aria-live="polite"></div>
+          <button class="next-btn" id="nextBtn" type="button" hidden>Tālāk</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mazs info debug (vari pēc tam izņemt) -->
+    
+  </main>
+
+  <script src="assets/disk.js"></script>
+  <script src="assets/game.js"></script>
+</body>
+</html>
