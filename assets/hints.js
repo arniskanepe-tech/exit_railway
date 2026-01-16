@@ -183,5 +183,17 @@
     if (state.mounted) render();
   }
 
-  window.Hints = { init, setHints, close };
+  function hide(){
+  if (!state.mounted) return;
+  close();
+  state.stackEl.style.display = "none";
+  state.backdropEl.hidden = true;
+}
+
+function show(){
+  if (!state.mounted) return;
+  state.stackEl.style.display = "";
+}
+
+  window.Hints = { init, setHints, close, hide, show };
 })();
