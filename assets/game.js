@@ -1,17 +1,21 @@
 // assets/game.js
 (() => {
+  // ============ Konfigurācija ============
   const symbols = ["★","☾","▲","◆","✚","⬣","⬟","●","▣"];
 
-  // ===== Welcome / start gate =====
+  // ===== Welcome =====
   const intro = {
-    greeting: "Čau, Nikola! Daudz laimes dzimšanas dienā! Esam tev sarūpējuši vienu dāvanu, kas liks parakāties atmiņas dzīlēs, paskaitīt, iespējams pasvīst un cerams sagādās pozitīvas emocijas. Vai esi gatava?",
+    greeting:
+      "Čau, Nikola! Daudz laimes dzimšanas dienā! Esam tev sarūpējuši vienu dāvanu, kas liks parakāties atmiņas dzīlēs, paskaitīt, iespējams pasvīst un cerams sagādās pozitīvas emocijas. Vai esi gatava?",
     answer: "jā",
     wrongHint: "tiešām?"
   };
 
+  // ===== LĪMEŅI (NEAIZTIKTI) =====
   const levels = [
     {
       id: 1,
+      title: "",
       background: "bg.jpg",
       targetSlot: 1,
       answer: "345",
@@ -19,45 +23,66 @@
         <p>Kas par fantastisku Gadu Secību bijusi.</p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
-      hint1: "Padoms #1 — paskaties uz GADU secību.",
-      hint2: "Padoms #2 — cipari ir tieši 3 un tie ir vienā līnijā.",
-      hint3: "Padoms #3 — uzgriez līdz MĒRĶA simbolam."
+      hint1: "Padoms #1 (L1) — paskaties uz GADU secību.",
+      hint2: "Padoms #2 (L1) — cipari ir tieši 3 un tie ir redzami vienā līnijā.",
+      hint3: "Padoms #3 (L1) — uzgriez līdz MĒRĶA simbolam.",
     },
     {
       id: 2,
+      title: "",
       background: "bg1.jpg",
       targetSlot: 0,
       answer: "149",
-      cardHtml: `<p>Steady, Dress up, Go!</p>`
+      cardHtml: `
+        <p>Steady, Dress up, Go!</p>
+        <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
+      `,
+      hint1: "",
+      hint2: "",
+      hint3: "",
     },
     {
       id: 3,
+      title: "",
       background: "bg2.jpg",
       targetSlot: 3,
       answer: "159",
-      cardHtml: `<p></p>`
+      cardHtml: `
+        <p></p>
+        <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
+      `,
+      hint1: "",
+      hint2: "",
+      hint3: "",
     },
     {
       id: 4,
+      title: "",
       background: "bg3.jpg",
       targetSlot: 2,
       answer: "317",
-      cardHtml: `<p></p>`
+      cardHtml: `
+        <p></p>
+        <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
+      `,
+      hint1: "",
+      hint2: "",
+      hint3: "",
     },
     {
       id: 5,
+      title: "",
       background: "bg4.jpg",
       targetSlot: 6,
       answer: "368",
-      cardHtml: `<p></p>`
-    }
-  ];
-
-  const wrongMessages = [
-    { text: "Tā jau nu gan nebūs", sound: "assets/sound/wrong_01.m4a" },
-    { text: "Sīkais, nu tu dod...", sound: "assets/sound/wrong_09.m4a" },
-    { text: "Wtf...", sound: "assets/sound/wrong_07.m4a" },
-    { text: "Saņemies, tu to vari!", sound: "assets/sound/wrong_03.m4a" }
+      cardHtml: `
+        <p></p>
+        <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
+      `,
+      hint1: "",
+      hint2: "",
+      hint3: "",
+    },
   ];
 
   // ===== DOM =====
@@ -73,12 +98,14 @@
   const nextBtn = document.getElementById("nextBtn");
   const resultMsg = document.getElementById("resultMsg");
 
+  // ===== Welcome DOM =====
   const welcome = document.getElementById("welcome");
   const welcomeTitle = document.getElementById("welcomeTitle");
   const welcomeInput = document.getElementById("welcomeInput");
   const welcomeHint = document.getElementById("welcomeHint");
 
-  function normalize(s){ return (s || "").trim().toLowerCase(); }
+  // ===== UTIL =====
+  const normalize = s => (s || "").trim().toLowerCase();
 
   function showWelcomeHint(txt){
     welcomeHint.textContent = txt;
@@ -86,75 +113,85 @@
     setTimeout(() => welcomeHint.classList.remove("show"), 900);
   }
 
+  function startGame(){
+    welcome.style.display = "none";
+    loadLevel(0);
+    closeDisk();
+  }
+
   function setupWelcome(){
     welcomeTitle.textContent = intro.greeting;
 
-    welcomeInput.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
-      if (normalize(welcomeInput.value) === normalize(intro.answer)) {
-        welcome.style.display = "none";
+    let isComposing = false;
+
+    function validate(force = false){
+      const v = normalize(welcomeInput.value);
+      if (!force && v.length < 2) return;
+
+      if (v === normalize(intro.answer)) {
         startGame();
       } else {
         showWelcomeHint(intro.wrongHint);
         welcomeInput.value = "";
+      }
+    }
+
+    welcomeInput.addEventListener("compositionstart", () => isComposing = true);
+    welcomeInput.addEventListener("compositionend", () => {
+      isComposing = false;
+      validate();
+    });
+
+    welcomeInput.addEventListener("input", () => {
+      if (!isComposing) validate();
+    });
+
+    welcomeInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        validate(true);
       }
     });
 
     setTimeout(() => welcomeInput.focus(), 0);
   }
 
-  // ===== Disk =====
+  // ===== DISKS =====
   const disk = window.DiskGameDisk.create({
     canvas,
     targetSlot: 0,
-    symbols
+    symbols,
   });
 
   let levelIndex = 0;
   let isOpen = false;
   let solved = false;
 
-  let wrongPool = [...wrongMessages];
-
-  function playWrong(){
-    if (!wrongPool.length) wrongPool = [...wrongMessages];
-    const i = Math.floor(Math.random() * wrongPool.length);
-    const msg = wrongPool.splice(i,1)[0];
-    new Audio(msg.sound).play().catch(()=>{});
-    return msg.text;
-  }
-
   function loadLevel(i){
     levelIndex = i;
     const lvl = levels[i];
 
     scene.style.backgroundImage = `url("assets/${lvl.background}")`;
-    cardTitle.textContent = "";
+    cardTitle.textContent = lvl.title;
     cardBody.innerHTML = lvl.cardHtml;
     targetSymbolLabel.textContent = symbols[lvl.targetSlot];
-    disk.setTargetSlot(lvl.targetSlot);
 
+    disk.setTargetSlot(lvl.targetSlot);
     solved = false;
     resultMsg.textContent = "";
     nextBtn.hidden = true;
 
-    if (window.Hints?.setHints) {
+    if (window.Hints) {
       window.Hints.setHints([
-        { title:"Padoms 1", text:lvl.hint1||"" },
-        { title:"Padoms 2", text:lvl.hint2||"" },
-        { title:"Padoms 3", text:lvl.hint3||"" }
+        { title: "Padoms 1", text: lvl.hint1 },
+        { title: "Padoms 2", text: lvl.hint2 },
+        { title: "Padoms 3", text: lvl.hint3 },
       ]);
-      window.Hints.close?.();
+      window.Hints.close();
     }
   }
 
-  function startGame(){
-    loadLevel(0);
-    closeDisk();
-  }
-
   function openDisk(){
-    if (isOpen) return;
     isOpen = true;
     diskShell.classList.add("disk-center");
     diskShell.classList.remove("disk-corner");
@@ -174,29 +211,40 @@
 
   disk.setOnCheck(() => {
     if (!isOpen) return;
+
     const lvl = levels[levelIndex];
-    if (disk.getCodeAtTarget() === lvl.answer) {
+    const code = disk.getCodeAtTarget();
+
+    if (code === lvl.answer) {
       solved = true;
       disk.renderStatus("OK", true);
-      nextBtn.hidden = false;
+
+      if (levelIndex === levels.length - 1) {
+        setTimeout(showFinalScreen, 400);
+      } else {
+        nextBtn.hidden = false;
+        feedback.innerHTML = "Pareizi! Spied <strong>Tālāk</strong>.";
+      }
     } else {
       disk.renderStatus("NĒ", false);
-      resultMsg.textContent = playWrong();
+      feedback.innerHTML = "Pamēģini vēlreiz.";
     }
   });
 
   nextBtn.addEventListener("click", () => {
     if (!solved) return;
-    if (levelIndex === levels.length - 1) {
-      taskCard.hidden = true;
-      diskShell.hidden = true;
-      scene.style.backgroundImage = `url("assets/finiss.jpg")`;
-      return;
-    }
     loadLevel(levelIndex + 1);
     closeDisk();
   });
 
-  if (window.Hints?.init) window.Hints.init({ mountEl: scene });
+  function showFinalScreen(){
+    if (window.Hints) window.Hints.close();
+    taskCard.hidden = true;
+    diskShell.hidden = true;
+    scene.style.backgroundImage = `url("assets/finiss.jpg")`;
+  }
+
+  // ===== INIT =====
+  if (window.Hints) window.Hints.init({ mountEl: scene });
   setupWelcome();
 })();
