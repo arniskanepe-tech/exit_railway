@@ -74,8 +74,8 @@
       targetSlot: 6,      // ⬟ (symbols[6])
       answer: "368",
       cardHtml: `
-          <p></p>
-          <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
+        <p></p>
+        <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
       hint1: "",
       hint2: "",
@@ -131,6 +131,11 @@
   }
 
   function startGame(){
+    // ja bija fināls un kādreiz taisīsiet restartu
+    if (window.Hints && typeof window.Hints.show === "function") {
+      window.Hints.show();
+    }
+
     loadLevel(0);
     closeDisk();
   }
@@ -217,7 +222,6 @@
       if (lvl.hint3 != null) arr.push({ text: String(lvl.hint3) });
     }
 
-    // nodrošinām tieši 3 gab.
     while (arr.length < 3) arr.push({ text: "" });
 
     return arr.slice(0,3).map((h, idx) => ({
@@ -229,12 +233,12 @@
   function setHintsForLevel(lvl){
     currentHints = normalizeHints(lvl);
 
-    // ✅ Nodevām UI uz hints.js
     if (window.Hints && typeof window.Hints.setHints === "function") {
       window.Hints.setHints(currentHints);
 
-      // drošībai – ja lietotājs bija atvēris kārti un notiek level maiņa
+      // drošībai – ja bija atvērta kārts un notiek level maiņa
       if (typeof window.Hints.close === "function") window.Hints.close();
+      if (typeof window.Hints.show === "function") window.Hints.show();
     }
   }
 
@@ -249,15 +253,13 @@
     audioUnlocked = true;
 
     const a = new Audio("/assets/sound/wrong_01.m4a");
-    a.volume = 0; // pilnīgi kluss
+    a.volume = 0;
     a.play()
       .then(() => {
         a.pause();
         a.currentTime = 0;
       })
-      .catch(() => {
-        // ignore
-      });
+      .catch(() => {});
   }
 
   document.addEventListener("pointerdown", unlockAudioOnce, { once: true });
@@ -273,11 +275,10 @@
     a.play().catch(() => {});
   }
 
-  // Izvēlas random “wrong” (bez atkārtošanās), atskaņo skaņu un atgriež TEKSTU
   function getNextWrongMessage() {
     if (wrongPool.length === 0) wrongPool = [...wrongMessages];
     const idx = Math.floor(Math.random() * wrongPool.length);
-    const item = wrongPool.splice(idx, 1)[0]; // { text, sound }
+    const item = wrongPool.splice(idx, 1)[0];
     playSfx(item.sound);
     return item.text;
   }
@@ -329,13 +330,11 @@
     }
   }
 
-  // ✅ Inicializējam Hints moduli (tas pats uzģenerēs DOM)
+  // ✅ Inicializējam Hints moduli
   if (window.Hints && typeof window.Hints.init === "function") {
     try {
       window.Hints.init({ mountEl: scene });
-    } catch (e) {
-      // ja kādreiz mount nav pieejams, spēle vienalga strādā bez hintiem
-    }
+    } catch (e) {}
   }
 
   // sākuma stāvoklis
@@ -348,6 +347,9 @@
     isOpen = true;
 
     const lvl = levels[levelIndex];
+
+    // ja atvērta kārts – aizveram
+    if (window.Hints && typeof window.Hints.close === "function") window.Hints.close();
 
     diskShell.classList.add("disk-center");
     diskShell.classList.remove("disk-corner");
@@ -371,19 +373,22 @@
 
   // ===== Fināla ekrāns (finiss.jpg) =====
   function showFinalScreen() {
-    // “mīksti” aizveram disku (lai nav lēciens)
     if (isOpen) closeDisk();
 
-    // neliela pauze, lai klases paspēj nomainīties (ja ir CSS pārejas)
+    // ✅ paslēpjam padomus finālā
+    if (window.Hints && typeof window.Hints.hide === "function") {
+      window.Hints.hide();
+    } else if (window.Hints && typeof window.Hints.close === "function") {
+      // fallback: vismaz aizveram atvērto kārti
+      window.Hints.close();
+    }
+
     setTimeout(() => {
-      // paslēpjam UI
       if (taskCard) taskCard.hidden = true;
       if (diskShell) diskShell.hidden = true;
 
-      // drošībai izslēdzam interaktivitāti
       try { disk.setInteractive(false); } catch(e) {}
 
-      // uzliekam pēdējo fonu
       scene.style.backgroundImage = `url("assets/finiss.jpg")`;
     }, 220);
   }
@@ -416,12 +421,10 @@
       const isLast = levelIndex >= levels.length - 1;
 
       if (isLast) {
-        // pēdējais līmenis: uzreiz uz finālu, bez "Tālāk"
         setNextVisible(false);
         resultMsg.textContent = "";
         feedback.innerHTML = `Pareizi!`;
 
-        // īsa pauze, lai OK “ielasās”, tad finiss
         setTimeout(() => {
           showFinalScreen();
         }, 420);
@@ -429,7 +432,6 @@
         return;
       }
 
-      // nav pēdējais
       resultMsg.textContent = "";
       setNextVisible(true);
       feedback.innerHTML = `Pareizi! Spied <strong>Tālāk</strong>, lai pārietu uz nākamo uzdevumu.`;
@@ -454,7 +456,6 @@
   nextBtn.addEventListener("click", () => {
     if (!solved) return;
 
-    // (drošībai) ja tomēr kādreiz atstāj "Tālāk" pēdējā līmenī
     const isLast = levelIndex >= levels.length - 1;
     if (isLast) {
       showFinalScreen();
