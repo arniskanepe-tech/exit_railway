@@ -402,4 +402,32 @@ html,body{
   }
 }
 
+/* ===== MOBILE FIX: task-card lai vienmēr var tikt pie "Tālāk" ===== */
+@media (max-width: 520px){
+  .task-card{
+    left: 12px;
+    right: 12px;
+    width: auto;
+
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    max-height: calc(100vh - 24px - env(safe-area-inset-bottom));
+
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* lai saturs neielien zem iOS apakšējās joslas */
+  .task-card{
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  /* "Tālāk" vienmēr redzams apakšā kartē */
+  .card-actions{
+    position: sticky;
+    bottom: 0;
+    background: rgba(255,255,255,0.94);
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+}
 
