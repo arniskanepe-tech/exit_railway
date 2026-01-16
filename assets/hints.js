@@ -1,7 +1,4 @@
 // assets/hints.js
-// Hint kāršu UI/UX modulis (neatkarīgs no diska)
-// Plain JS: window.Hints API (draudzīgs GitHub Pages)
-
 (function () {
   const state = {
     mounted: false,
@@ -31,32 +28,12 @@
   function ensureDom() {
     if (state.mounted) return;
 
-    // Backdrop (click outside -> close)
     const backdrop = el("div", "hint-backdrop", { hidden: "" });
     backdrop.addEventListener("pointerdown", (e) => {
-      // ja klikšķis tieši uz backdrop (nevis uz karti) -> close
       if (e.target === backdrop) close();
     });
 
-    // Stack container
     const stack = el("div", "hint-stack", { "aria-label": "Padomi" });
-
-    // Globāls "click outside" drošības tīkls
-    document.addEventListener("pointerdown", (e) => {
-      if (state.activeIndex == null) return;
-
-      const openCard = state.cards[state.activeIndex];
-      if (!openCard) return;
-
-      // ja klikšķis ir uz atvērtās kartes (vai tās iekšā), neaizveram
-      if (openCard.contains(e.target)) return;
-
-      // ja klikšķis ir uz hint stack (cita kārts), ļaujam open() pārslēgt
-      if (state.stackEl && state.stackEl.contains(e.target)) return;
-
-      // citur — aizver
-      close();
-    });
 
     const makeCard = (i) => {
       const btn = el("button", `hint-card hc-${i + 1}`, {
@@ -80,7 +57,7 @@
       btn.appendChild(inner);
 
       btn.addEventListener("click", (e) => {
-        e.stopPropagation(); // lai disks neuzķeras
+        e.stopPropagation();
         open(i);
       });
 
@@ -97,12 +74,10 @@
 
     state.cards = [c0, c1, c2];
 
-    // ESC close
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") close();
     });
 
-    // Mount
     state.mountEl.appendChild(backdrop);
     state.mountEl.appendChild(stack);
 
@@ -110,7 +85,6 @@
     state.stackEl = stack;
     state.mounted = true;
 
-    // Initial fill
     render();
   }
 
@@ -134,14 +108,13 @@
   function open(i) {
     if (!state.mounted) return;
 
-    // ja jau atvērts — nedaram neko
     if (state.activeIndex === i) return;
 
     close(false);
 
     state.activeIndex = i;
 
-    // ✅ ATVEROT – parādām backdrop
+    // ✅ parādam backdrop, lai klikšķis fonā aizver
     state.backdropEl.hidden = false;
 
     const card = state.cards[i];
@@ -159,10 +132,22 @@
       c.setAttribute("aria-expanded", "false");
     });
 
-    // ✅ AIZVEROT – paslēpjam backdrop
+    // ✅ paslēpjam backdrop
     state.backdropEl.hidden = true;
 
     if (resetActive) state.activeIndex = null;
+  }
+
+  function hide(){
+    if (!state.mounted) return;
+    close();
+    state.stackEl.style.display = "none";
+    state.backdropEl.hidden = true;
+  }
+
+  function show(){
+    if (!state.mounted) return;
+    state.stackEl.style.display = "";
   }
 
   function init({ mountEl }) {
@@ -182,18 +167,6 @@
 
     if (state.mounted) render();
   }
-
-  function hide(){
-  if (!state.mounted) return;
-  close();
-  state.stackEl.style.display = "none";
-  state.backdropEl.hidden = true;
-}
-
-function show(){
-  if (!state.mounted) return;
-  state.stackEl.style.display = "";
-}
 
   window.Hints = { init, setHints, close, hide, show };
 })();
