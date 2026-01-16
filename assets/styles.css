@@ -261,22 +261,26 @@ html,body{
 }
 
 
-/* ===== HINT KĀRTIS ===== */
+/* ===== HINT KĀRTIS (v2: hints.js) ===== */
+
+/* Stack stāv BLACUS diskam (nevis zem tā) */
 .hint-stack{
   position:absolute;
-  left: var(--pad);
-  top: calc(var(--pad) + var(--disk-size) + 22px);
-  width: 128px;
+  left: calc(var(--pad) + var(--disk-size) + 14px);
+  top: var(--pad);
+  width: 140px;
   height: 96px;
   z-index: 6;
   pointer-events: auto;
 }
 
+/* Karte ir button */
 .hint-card{
   position:absolute;
   left: 0;
   width: 128px;
   height: 70px;
+  padding: 0;
   border: 1px solid rgba(255,255,255,.35);
   border-radius: 14px;
   background: rgba(15,16,20,.72);
@@ -290,65 +294,106 @@ html,body{
 
   cursor: pointer;
   user-select:none;
+  appearance: none;
 }
 
-.hint-card:hover{ transform: translateY(-2px) rotate(var(--rot, 0deg)); }
+/* Hover viegls “lift” */
+.hint-card:hover{
+  transform: translateY(-2px) rotate(var(--rot, 0deg));
+}
 
-.hc-1{ top: 0;   z-index: 3; --rot: -2deg; transform: rotate(-2deg); }
+/* Stacked pozīcijas */
+.hc-1{ top: 0;    z-index: 3; --rot: -2deg; transform: rotate(-2deg); }
 .hc-2{ top: 12px; z-index: 2; --rot:  1deg; transform: rotate(1deg); }
 .hc-3{ top: 24px; z-index: 1; --rot:  3deg; transform: rotate(3deg); }
 
-.hint-overlay{
+/* Backdrop (parādās tikai, kad kārts ir atvērta) */
+.hint-backdrop{
   position: fixed;
   inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
+  z-index: 50;
   background: rgba(0,0,0,.55);
-  padding: 18px;
 }
 
-.hint-modal{
-  width: min(720px, 96vw);
-  max-height: min(85vh, 720px);
-  overflow: auto;
-  border-radius: 18px;
-  background: rgba(15,16,20,.92);
-  border: 1px solid rgba(255,255,255,.18);
-  box-shadow: 0 30px 80px rgba(0,0,0,.45);
-  backdrop-filter: blur(10px);
+.hint-backdrop[hidden]{
+  display:none !important;
 }
 
-.hint-modal-head{
+/* Flip iekšējā struktūra */
+.hint-card-inner{
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  transform-style: preserve-3d;
+  transition: transform .55s ease;
+}
+
+.hint-card-face{
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  padding: 14px;
+  backface-visibility: hidden;
   display:flex;
   align-items:center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid rgba(255,255,255,.10);
+  justify-content:center;
 }
 
-.hint-modal-title{
+.hint-front-title{
   font-weight: 800;
-  font-size: 18px;
+  font-size: 14px;
 }
 
-.hint-close{
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(255,255,255,.06);
-  color: #fff;
-  cursor:pointer;
-  font-size: 20px;
-  line-height: 0;
+.hint-back{
+  transform: rotateY(180deg);
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-start;
+  gap: 10px;
 }
 
-.hint-modal-body{
-  padding: 14px;
+.hint-back-title{
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.hint-back-text{
   font-size: 16px;
   line-height: 1.45;
-  color: rgba(255,255,255,.92);
+  opacity: .95;
   white-space: pre-wrap;
 }
+
+/* Atvērta kārts: centrā + flip uz muguru */
+.hint-card.is-open{
+  position: fixed;
+  z-index: 60;
+  top: 50%;
+  left: 50%;
+  width: min(720px, 92vw);
+  height: auto;
+  min-height: 180px;
+  transform: translate(-50%, -50%) !important;
+  cursor: default;
+}
+
+/* kad atvērta, nerotējam */
+.hint-card.is-open:hover{
+  transform: translate(-50%, -50%) !important;
+}
+
+.hint-card.is-open .hint-card-inner{
+  transform: rotateY(180deg);
+}
+
+/* Mobile: ja vietas maz, noliekam hintus zem diska (drošības režīms) */
+@media (max-width: 520px){
+  .hint-stack{
+    left: var(--pad);
+    top: calc(var(--pad) + var(--disk-size) + 22px);
+  }
+}
+
+
