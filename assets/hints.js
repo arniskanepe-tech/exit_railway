@@ -123,7 +123,7 @@
 
     state.activeIndex = i;
 
-    state.backdropEl.hidden = false;
+    state.backdropEl.hidden = true;
 
     const card = state.cards[i];
     if (card) {
