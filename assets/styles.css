@@ -10,6 +10,7 @@ html,body{
   height:100%;
   margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  overscroll-behavior: none;
 }
 
 /* ===== SCENE / BACKGROUND ===== */
@@ -18,10 +19,10 @@ html,body{
   inset:0;
   width:100vw;
   height:100vh;
-  overflow:hidden; /* bloķējam lapas scroll; scroll būs kartē */
-
+  overflow:hidden;
+  touch-action:none; /* lai lapa pati ne-bounce */
   background-image: none;
-  background-size: 100% 100%;   /* pilns ekrāns, STIEPTS */
+  background-size: 100% 100%;
   background-position: center;
   background-repeat: no-repeat;
 }
@@ -121,6 +122,10 @@ html,body{
   box-shadow: 0 20px 60px rgba(0,0,0,.35);
   backdrop-filter: blur(6px);
   pointer-events:auto;
+
+  /* svarīgi mobile scroll */
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 /* HUD */
@@ -226,8 +231,6 @@ html,body{
 }
 
 /* ===== HINT KĀRTIS (v2: hints.js) ===== */
-
-/* Stack blakus diskam */
 .hint-stack{
   position:absolute;
   left: calc(var(--pad) + var(--disk-size) + 14px);
@@ -238,7 +241,6 @@ html,body{
   pointer-events: auto;
 }
 
-/* Karte ir button */
 .hint-card{
   position:absolute;
   left: 0;
@@ -261,17 +263,14 @@ html,body{
   appearance: none;
 }
 
-/* Hover */
 .hint-card:hover{
   transform: translateY(-2px) rotate(var(--rot, 0deg));
 }
 
-/* Stacked pozīcijas */
 .hc-1{ top: 0;    z-index: 3; --rot: -2deg; transform: rotate(-2deg); }
 .hc-2{ top: 12px; z-index: 2; --rot:  1deg; transform: rotate(1deg); }
 .hc-3{ top: 24px; z-index: 1; --rot:  3deg; transform: rotate(3deg); }
 
-/* Backdrop (klikšķis ārpusē aizver; NEaptumšo) */
 .hint-backdrop{
   position: fixed;
   inset: 0;
@@ -280,7 +279,6 @@ html,body{
 }
 .hint-backdrop[hidden]{ display:none !important; }
 
-/* Flip */
 .hint-card-inner{
   position: relative;
   width: 100%;
@@ -327,7 +325,6 @@ html,body{
   white-space: pre-wrap;
 }
 
-/* Atvērta kārts centrā */
 .hint-card.is-open{
   position: fixed;
   z-index: 60;
@@ -338,15 +335,17 @@ html,body{
   min-height: 180px;
   transform: translate(-50%, -50%) !important;
   cursor: default;
+
+  overflow:auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
-/* Fokusā/hover pacel virs citām */
 .hint-card:hover,
 .hint-card:focus-visible{
   z-index: 10;
 }
 
-/* atvērtai nerotējam hover */
 .hint-card.is-open:hover{
   transform: translate(-50%, -50%) !important;
 }
@@ -355,50 +354,56 @@ html,body{
   transform: rotateY(180deg);
 }
 
-/* ===== MOBILE (vienīgais, sakārtotais bloks) ===== */
-@media (max-width: 520px){
+/* ===== MOBILE ORIENTATION LAYOUTS (gala) ===== */
 
-  /* mazāks disks centrā uz mobile */
-  :root{
-    --disk-size-active: min(86vw, 420px);
+/* vispārīgi mobile: kartīte bottom-sheet + sticky actions */
+@media (max-width: 900px) and (hover: none){
+  .task-card{
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
-  /* hint stack drošības režīms zem diska */
+  .card-actions{
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 3 !important;
+    background: rgba(255,255,255,0.94) !important;
+    padding-top: 10px !important;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .card-footer{
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  /* hint stack zem diska (drošības režīms) */
   .hint-stack{
     left: var(--pad);
     top: calc(var(--pad) + var(--disk-size) + 22px);
   }
+}
 
-  /* HUD */
-  .hud{
-    left: 12px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-  }
-
-  /* uzdevuma kārts kā bottom-sheet pa visu platumu */
+/* Portrait */
+@media (max-width: 900px) and (hover: none) and (orientation: portrait){
+  :root{ --disk-size-active: min(86vw, 420px); }
   .task-card{
-    left: 12px;
-    right: 12px;
-    width: auto;
-
-    bottom: calc(12px + env(safe-area-inset-bottom));
-
-    max-height: 60vh;
-    max-height: 60svh;
-
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-
-    box-sizing: border-box;
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    max-height: 52vh !important;
+    max-height: 52svh !important;
   }
+}
 
-  /* "Tālāk" vienmēr redzams apakšā kartē */
-  .card-actions{
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    background: rgba(255,255,255,0.94);
-    padding-top: 10px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+/* Landscape */
+@media (max-width: 900px) and (hover: none) and (orientation: landscape){
+  :root{ --disk-size-active: min(62vw, 320px); }
+  .task-card{
+    bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+    max-height: 44vh !important;
+    max-height: 44svh !important;
   }
 }
