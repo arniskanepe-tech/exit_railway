@@ -401,7 +401,7 @@ html,body{
 /* Mobile: ja vietas maz, noliekam hintus zem diska */
 @media (max-width: 520px){
    :root{
-    --disk-size: min(15vw,100px);
+    --disk-size: min(20vw,150px);
     --disk-size-active: min(85vw,420px);
     }
   .hint-stack{
