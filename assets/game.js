@@ -1,7 +1,9 @@
 // assets/game.js
 (() => {
+  // ============ Konfigurācija ============
   const symbols = ["★","☾","▲","◆","✚","⬣","⬟","●","▣"];
 
+  // ===== Welcome / start gate =====
   const intro = {
     greeting: "Čau, Nikola! Daudz laimes dzimšanas dienā! Esam tev sarūpējuši vienu dāvanu, kas liks parakāties atmiņas dzīlēs, paskaitīt, iespējams pasvīst un cerams sagādās pozitīvas emocijas. Vai esi gatava?",
     answer: "jā",
@@ -13,7 +15,7 @@
       id: 1,
       title: "",
       background: "bg.jpg",
-      targetSlot: 1,
+      targetSlot: 1,      // ☾
       answer: "345",
       cardHtml: `
         <p>Kas par fantastisku Gadu Secību bijusi.</p>
@@ -27,7 +29,7 @@
       id: 2,
       title: "",
       background: "bg1.jpg",
-      targetSlot: 0,
+      targetSlot: 0,      // ★
       answer: "149",
       cardHtml: `
         <p>Steady, Dress up, Go!</p>
@@ -41,7 +43,7 @@
       id: 3,
       title: "",
       background: "bg2.jpg",
-      targetSlot: 3,
+      targetSlot: 3,      // ◆
       answer: "159",
       cardHtml: `
         <p></p>
@@ -55,7 +57,7 @@
       id: 4,
       title: "",
       background: "bg3.jpg",
-      targetSlot: 2,
+      targetSlot: 2,      // ▲
       answer: "317",
       cardHtml: `
         <p></p>
@@ -69,7 +71,7 @@
       id: 5,
       title: "",
       background: "bg4.jpg",
-      targetSlot: 6,
+      targetSlot: 6,      // ⬟
       answer: "368",
       cardHtml: `
         <p></p>
@@ -94,9 +96,8 @@
     { text: "Forza, forza!!!",                     sound: "assets/sound/wrong_10.m4a" },
   ];
 
-  // ===== DOM =====
+  // ============ DOM ============
   const scene = document.getElementById("scene");
-
   const diskShell = document.getElementById("diskShell");
   const canvas = document.getElementById("diskCanvas");
 
@@ -105,19 +106,19 @@
   const feedback = document.getElementById("feedback");
   const targetSymbolLabel = document.getElementById("targetSymbolLabel");
   const taskCard = document.getElementById("taskCard");
+  const taskBackdrop = document.getElementById("taskBackdrop");
+  const targetBtn = document.getElementById("targetBtn");
 
   const nextBtn = document.getElementById("nextBtn");
+  const resultMsg = document.getElementById("resultMsg");
 
+  // ===== Welcome elements =====
   const welcome = document.getElementById("welcome");
   const welcomeTitle = document.getElementById("welcomeTitle");
   const welcomeInput = document.getElementById("welcomeInput");
   const welcomeHint = document.getElementById("welcomeHint");
 
-  const resultMsg = document.getElementById("resultMsg");
-
-  function normalize(s){
-    return (s || "").trim().toLowerCase();
-  }
+  function normalize(s){ return (s || "").trim().toLowerCase(); }
 
   function showWelcomeHint(txt){
     if (!welcomeHint) return;
@@ -126,10 +127,177 @@
     setTimeout(() => welcomeHint.classList.remove("show"), 900);
   }
 
+  // ============ Disks ============
+  const disk = window.DiskGameDisk.create({
+    canvas,
+    targetSlot: 0,
+    symbols,
+  });
+
+  // ============ State ============
+  let levelIndex = 0;
+  let isOpen = false;          // disk open
+  let solved = false;
+  let isTaskOpen = false;      // task modal open
+
+  // ===== Audio unlock (iOS/Safari) =====
+  let audioUnlocked = false;
+  function unlockAudioOnce() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+
+    const a = new Audio("assets/sound/wrong_01.m4a");
+    a.volume = 0;
+    a.play()
+      .then(() => { a.pause(); a.currentTime = 0; })
+      .catch(() => {});
+  }
+  document.addEventListener("pointerdown", unlockAudioOnce, { once: true });
+  document.addEventListener("keydown", unlockAudioOnce, { once: true });
+
+  let wrongPool = [...wrongMessages];
+
+  function playSfx(src) {
+    if (!src) return;
+    const a = new Audio(src);
+    a.preload = "auto";
+    a.play().catch(() => {});
+  }
+
+  function getNextWrongMessage() {
+    if (wrongPool.length === 0) wrongPool = [...wrongMessages];
+    const idx = Math.floor(Math.random() * wrongPool.length);
+    const item = wrongPool.splice(idx, 1)[0];
+    playSfx(item.sound);
+    return item.text;
+  }
+
+  function setNextVisible(visible) { nextBtn.hidden = !visible; }
+
+  function resetResultUI() {
+    resultMsg.textContent = "";
+    setNextVisible(false);
+  }
+
+  // ===== Hints =====
+  function normalizeHints(lvl){
+    const arr = [];
+
+    if (Array.isArray(lvl.hints)) {
+      for (let i=0; i<lvl.hints.length; i++){
+        const h = lvl.hints[i];
+        if (typeof h === "string") arr.push({ text: h });
+        else if (h && typeof h === "object") arr.push(h);
+      }
+    } else {
+      if (lvl.hint1 != null) arr.push({ text: String(lvl.hint1) });
+      if (lvl.hint2 != null) arr.push({ text: String(lvl.hint2) });
+      if (lvl.hint3 != null) arr.push({ text: String(lvl.hint3) });
+    }
+
+    while (arr.length < 3) arr.push({ text: "" });
+
+    return arr.slice(0,3).map((h, idx) => ({
+      title: h.title || `Padoms ${idx+1}`,
+      text: h.text || ""
+    }));
+  }
+
+  function setHintsForLevel(lvl){
+    const hints = normalizeHints(lvl);
+
+    if (window.Hints && typeof window.Hints.setHints === "function") {
+      window.Hints.setHints(hints);
+      if (typeof window.Hints.close === "function") window.Hints.close();
+      if (typeof window.Hints.show === "function") window.Hints.show();
+    }
+  }
+
+  // ✅ init Hints
+  if (window.Hints && typeof window.Hints.init === "function") {
+    try { window.Hints.init({ mountEl: scene }); } catch (e) {}
+  }
+
+  // ===== Task modal open/close =====
+  function openTask(){
+    if (!taskCard) return;
+
+    // ja atvērti hinti vai disks — aizveram
+    if (window.Hints && typeof window.Hints.close === "function") window.Hints.close();
+    if (isOpen) closeDisk();
+
+    isTaskOpen = true;
+    taskCard.classList.add("is-open");
+    taskCard.setAttribute("aria-hidden", "false");
+
+    if (taskBackdrop) taskBackdrop.hidden = false;
+  }
+
+  function closeTask(){
+    if (!taskCard) return;
+    isTaskOpen = false;
+
+    taskCard.classList.remove("is-open");
+    taskCard.setAttribute("aria-hidden", "true");
+
+    if (taskBackdrop) taskBackdrop.hidden = true;
+  }
+
+  // backdrop click closes
+  if (taskBackdrop) {
+    taskBackdrop.addEventListener("pointerdown", () => closeTask());
+  }
+
+  // Target icon click
+  if (targetBtn) {
+    targetBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (isTaskOpen) closeTask();
+      else openTask();
+    });
+  }
+
+  // ===== Level loader =====
+  function loadLevel(i) {
+    levelIndex = i;
+    const lvl = levels[levelIndex];
+
+    setHintsForLevel(lvl);
+
+    scene.style.backgroundImage = `url("assets/${lvl.background}")`;
+
+    // card content (nemainām struktūru, tikai saturu)
+    cardTitle.textContent = lvl.title;
+    cardBody.innerHTML = lvl.cardHtml;
+
+    targetSymbolLabel.textContent = symbols[lvl.targetSlot];
+    disk.setTargetSlot(lvl.targetSlot);
+
+    solved = false;
+    resetResultUI();
+
+    // instrukcijas teksts (saglabājam tavu loģiku)
+    if (isOpen) {
+      feedback.innerHTML =
+        `Uzgriez disku, līdz pretī mērķa simbolam <strong>${symbols[lvl.targetSlot]}</strong> redzi kodu. ` +
+        `Kad esi gatavs, spied centrā <strong>Pārbaudīt</strong>.`;
+      disk.setInteractive(true);
+    } else {
+      feedback.innerHTML =
+        `Klikšķini uz diska stūrī, lai atvērtu. Kad pareizi — centrā parādīsies <strong>OK</strong>.`;
+      disk.setInteractive(true);
+    }
+
+    // uzdevuma kārti pēc level change neturam vaļā
+    closeTask();
+  }
+
+  // ===== Welcome flow =====
   function startGame(){
     if (window.Hints && typeof window.Hints.show === "function") window.Hints.show();
     loadLevel(0);
     closeDisk();
+    closeTask();
   }
 
   function setupWelcome(){
@@ -154,7 +322,11 @@
 
     welcomeInput.addEventListener("compositionstart", () => { isComposing = true; });
     welcomeInput.addEventListener("compositionend", () => { isComposing = false; tryValidateWelcome(); });
-    welcomeInput.addEventListener("input", () => { if (!isComposing) tryValidateWelcome(); });
+
+    welcomeInput.addEventListener("input", () => {
+      if (isComposing) return;
+      tryValidateWelcome();
+    });
 
     welcomeInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -166,133 +338,19 @@
     setTimeout(() => welcomeInput.focus(), 0);
   }
 
-  // ===== Disk =====
-  const disk = window.DiskGameDisk.create({
-    canvas,
-    targetSlot: 0,
-    symbols,
-  });
-
-  let levelIndex = 0;
-
-  function normalizeHints(lvl){
-    const arr = [];
-    if (Array.isArray(lvl.hints)) {
-      for (let i=0; i<lvl.hints.length; i++){
-        const h = lvl.hints[i];
-        if (typeof h === "string") arr.push({ text: h });
-        else if (h && typeof h === "object") arr.push(h);
-      }
-    } else {
-      if (lvl.hint1 != null) arr.push({ text: String(lvl.hint1) });
-      if (lvl.hint2 != null) arr.push({ text: String(lvl.hint2) });
-      if (lvl.hint3 != null) arr.push({ text: String(lvl.hint3) });
-    }
-    while (arr.length < 3) arr.push({ text: "" });
-    return arr.slice(0,3).map((h, idx) => ({
-      title: h.title || `Padoms ${idx+1}`,
-      text: h.text || ""
-    }));
-  }
-
-  function setHintsForLevel(lvl){
-    const hints = normalizeHints(lvl);
-    if (window.Hints && typeof window.Hints.setHints === "function") {
-      window.Hints.setHints(hints);
-      if (typeof window.Hints.close === "function") window.Hints.close();
-      if (typeof window.Hints.show === "function") window.Hints.show();
-    }
-  }
-
-  let isOpen = false;
-  let solved = false;
-
-  // ===== Audio unlock =====
-  let audioUnlocked = false;
-  function unlockAudioOnce() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    const a = new Audio("assets/sound/wrong_01.m4a");
-    a.volume = 0;
-    a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
-  }
-  document.addEventListener("pointerdown", unlockAudioOnce, { once: true });
-  document.addEventListener("keydown", unlockAudioOnce, { once: true });
-
-  let wrongPool = [...wrongMessages];
-
-  function playSfx(src) {
-    if (!src) return;
-    const a = new Audio(src);
-    a.preload = "auto";
-    a.play().catch(() => {});
-  }
-
-  function getNextWrongMessage() {
-    if (wrongPool.length === 0) wrongPool = [...wrongMessages];
-    const idx = Math.floor(Math.random() * wrongPool.length);
-    const item = wrongPool.splice(idx, 1)[0];
-    playSfx(item.sound);
-    return item.text;
-  }
-
-  function setNextVisible(visible) {
-    nextBtn.hidden = !visible;
-  }
-
-  function resetResultUI() {
-    resultMsg.textContent = "";
-    setNextVisible(false);
-  }
-
-  function loadLevel(i) {
-    levelIndex = i;
-    const lvl = levels[levelIndex];
-
-    setHintsForLevel(lvl);
-
-    scene.style.backgroundImage = `url("assets/${lvl.background}")`;
-
-    cardTitle.textContent = lvl.title;
-    cardBody.innerHTML = lvl.cardHtml;
-
-    targetSymbolLabel.textContent = symbols[lvl.targetSlot];
-    disk.setTargetSlot(lvl.targetSlot);
-
-    solved = false;
-    resetResultUI();
-
-    if (isOpen) {
-      feedback.innerHTML =
-        `Uzgriez disku, līdz pretī mērķa simbolam <strong>${symbols[lvl.targetSlot]}</strong> redzi kodu. ` +
-        `Kad esi gatavs, spied centrā <strong>Pārbaudīt</strong>.`;
-      disk.setInteractive(true);
-    } else {
-      feedback.innerHTML =
-        `Klikšķini uz diska stūrī, lai atvērtu. Kad pareizi — centrā parādīsies <strong>OK</strong>.`;
-      disk.setInteractive(true);
-    }
-  }
-
-  // ===== Init hints =====
-  if (window.Hints && typeof window.Hints.init === "function") {
-    try { window.Hints.init({ mountEl: scene }); } catch (e) {}
-  }
-
-  disk.setInteractive(true);
-  setupWelcome();
-
+  // ===== Disk open/close =====
   function openDisk() {
     if (isOpen) return;
     isOpen = true;
 
-    const lvl = levels[levelIndex];
-
+    // ja bija atvērts uzdevums/hinti — aizveram
+    closeTask();
     if (window.Hints && typeof window.Hints.close === "function") window.Hints.close();
+
+    const lvl = levels[levelIndex];
 
     diskShell.classList.add("disk-center");
     diskShell.classList.remove("disk-corner");
-
     disk.setInteractive(true);
 
     feedback.innerHTML =
@@ -310,8 +368,34 @@
     disk.setInteractive(false);
   }
 
+  // atver tikai stūrī
+  diskShell.addEventListener("click", () => {
+    if (!diskShell.classList.contains("disk-corner")) return;
+    openDisk();
+  });
+
+  // klikšķis ārpus diska aizver
+  document.addEventListener("pointerdown", (e) => {
+    // disk close
+    if (isOpen) {
+      if (!diskShell.contains(e.target) && !(taskCard && taskCard.contains(e.target))) {
+        closeDisk();
+      }
+    }
+  });
+
+  // ESC: aizver uzdevumu un hintus
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    closeTask();
+    if (window.Hints && typeof window.Hints.close === "function") window.Hints.close();
+    if (isOpen) closeDisk();
+  });
+
+  // ===== Fināls =====
   function showFinalScreen() {
     if (isOpen) closeDisk();
+    closeTask();
 
     if (window.Hints && typeof window.Hints.hide === "function") {
       window.Hints.hide();
@@ -319,47 +403,16 @@
       window.Hints.close();
     }
 
+    if (targetBtn) targetBtn.hidden = true;
+
     setTimeout(() => {
-      if (taskCard) taskCard.hidden = true;
       if (diskShell) diskShell.hidden = true;
       try { disk.setInteractive(false); } catch(e) {}
       scene.style.backgroundImage = `url("assets/finiss.jpg")`;
     }, 220);
   }
 
-  // atver tikai stūrī
-  diskShell.addEventListener("click", () => {
-    if (!diskShell.classList.contains("disk-corner")) return;
-    openDisk();
-  });
-
-  // ✅ FIX: mobile drošs "tap outside closes disk"
-  function shouldIgnoreOutsideClose(target) {
-    if (!target) return false;
-
-    // ja klikšķis ir uz hintiem – nedrīkst aizvērt disku
-    if (target.closest(".hint-stack")) return true;
-    if (target.closest(".hint-card")) return true;
-    if (target.closest(".hint-backdrop")) return true;
-
-    return false;
-  }
-
-  function outsideCloseHandler(e) {
-    if (!isOpen) return;
-
-    if (diskShell.contains(e.target)) return;
-    if (taskCard && taskCard.contains(e.target)) return;
-    if (shouldIgnoreOutsideClose(e.target)) return;
-
-    closeDisk();
-  }
-
-  // CAPTURE režīms = nostrādā pirms canvas/diska iekšējiem handleriem
-  window.addEventListener("pointerdown", outsideCloseHandler, true);
-  window.addEventListener("click", outsideCloseHandler, true);
-
-  // ===== Check =====
+  // ========= POGA “Pārbaudīt” =========
   disk.setOnCheck(() => {
     if (!isOpen) return;
 
@@ -376,7 +429,11 @@
         setNextVisible(false);
         resultMsg.textContent = "";
         feedback.innerHTML = `Pareizi!`;
-        setTimeout(() => showFinalScreen(), 420);
+
+        setTimeout(() => {
+          showFinalScreen();
+        }, 420);
+
         return;
       }
 
@@ -390,7 +447,8 @@
       setNextVisible(false);
       resultMsg.textContent = getNextWrongMessage();
 
-      feedback.innerHTML = `Pamēģini vēlreiz. Uzgriez kodu pretī <strong>${symbols[lvl.targetSlot]}</strong> un spied <strong>Pārbaudīt</strong>.`;
+      feedback.innerHTML =
+        `Pamēģini vēlreiz. Uzgriez kodu pretī <strong>${symbols[lvl.targetSlot]}</strong> un spied <strong>Pārbaudīt</strong>.`;
 
       setTimeout(() => {
         if (!solved && isOpen) disk.setInteractive(true);
@@ -398,7 +456,7 @@
     }
   });
 
-  // ===== Next =====
+  // ========= TĀLĀK =========
   nextBtn.addEventListener("click", () => {
     if (!solved) return;
 
@@ -411,6 +469,13 @@
     loadLevel(levelIndex + 1);
     disk.setInteractive(true);
     resultMsg.textContent = "";
+
     closeDisk();
+    closeTask();
   });
+
+  // ===== start =====
+  disk.setInteractive(false);
+  disk.setInteractive(true);
+  setupWelcome();
 })();
