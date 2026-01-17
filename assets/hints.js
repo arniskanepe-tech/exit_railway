@@ -1,4 +1,7 @@
 // assets/hints.js
+// Hint kāršu UI/UX modulis (neatkarīgs no diska)
+// Plain JS: window.Hints API (draudzīgs GitHub Pages)
+
 (function () {
   const state = {
     mounted: false,
@@ -12,6 +15,7 @@
       { title: "Padoms 3", text: "" },
     ],
     activeIndex: null,
+    visible: true,
   };
 
   function el(tag, cls, attrs = {}) {
@@ -28,11 +32,14 @@
   function ensureDom() {
     if (state.mounted) return;
 
+    // Backdrop (transparent; click outside -> close)
     const backdrop = el("div", "hint-backdrop", { hidden: "" });
     backdrop.addEventListener("pointerdown", (e) => {
+      // klikšķis uz "tukšuma" aizver
       if (e.target === backdrop) close();
     });
 
+    // Stack container
     const stack = el("div", "hint-stack", { "aria-label": "Padomi" });
 
     const makeCard = (i) => {
@@ -56,10 +63,15 @@
       inner.appendChild(back);
       btn.appendChild(inner);
 
-      btn.addEventListener("click", (e) => {
+      // iOS drošībai: pointerdown + click
+      const openHandler = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         open(i);
-      });
+      };
+
+      btn.addEventListener("pointerdown", openHandler);
+      btn.addEventListener("click", openHandler);
 
       return btn;
     };
@@ -74,10 +86,33 @@
 
     state.cards = [c0, c1, c2];
 
+    // ESC close
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") close();
     });
 
+    // Global click outside close (papildus drošībai)
+    window.addEventListener(
+      "pointerdown",
+      (e) => {
+        if (state.activeIndex == null) return;
+
+        const openCard = state.cards[state.activeIndex];
+        if (!openCard) return;
+
+        // ja klikšķis ir uz atvērtās kartes (vai tās iekšā), neaizveram
+        if (openCard.contains(e.target)) return;
+
+        // ja klikšķis ir uz kādas hint kartes/stack - ļaujam open() pārslēgt
+        if (state.stackEl && state.stackEl.contains(e.target)) return;
+
+        // citur — aizver
+        close();
+      },
+      true // CAPTURE
+    );
+
+    // Mount
     state.mountEl.appendChild(backdrop);
     state.mountEl.appendChild(stack);
 
@@ -86,6 +121,14 @@
     state.mounted = true;
 
     render();
+    applyVisibility();
+  }
+
+  function applyVisibility() {
+    if (!state.mounted) return;
+    state.stackEl.style.display = state.visible ? "" : "none";
+    // ja slēpjam - aizveram atvērto
+    if (!state.visible) close(true);
   }
 
   function render() {
@@ -101,20 +144,25 @@
 
       if (frontTitle) frontTitle.textContent = h.title || `Padoms ${i + 1}`;
       if (backTitle) backTitle.textContent = h.title || `Padoms ${i + 1}`;
-      if (backText) backText.textContent = (h.text && h.text.trim()) ? h.text : "Šim līmenim vēl nav padoma.";
+      if (backText) backText.textContent = (h.text && h.text.trim())
+        ? h.text
+        : "Šim līmenim vēl nav padoma.";
     }
   }
 
   function open(i) {
     if (!state.mounted) return;
+    if (!state.visible) return;
 
+    // ja jau atvērts tas pats — neko
     if (state.activeIndex === i) return;
 
+    // aizver iepriekšējo, bet activeIndex neatmetam uz null (resetActive=false)
     close(false);
 
     state.activeIndex = i;
 
-    // ✅ parādam backdrop, lai klikšķis fonā aizver
+    // ✅ parādām backdrop (tas ir caurspīdīgs, bet vajadzīgs klikšķim ārpusē)
     state.backdropEl.hidden = false;
 
     const card = state.cards[i];
@@ -138,18 +186,6 @@
     if (resetActive) state.activeIndex = null;
   }
 
-  function hide(){
-    if (!state.mounted) return;
-    close();
-    state.stackEl.style.display = "none";
-    state.backdropEl.hidden = true;
-  }
-
-  function show(){
-    if (!state.mounted) return;
-    state.stackEl.style.display = "";
-  }
-
   function init({ mountEl }) {
     if (!mountEl) throw new Error("Hints.init({ mountEl }) nepieciešams mountEl");
     state.mountEl = mountEl;
@@ -168,5 +204,15 @@
     if (state.mounted) render();
   }
 
-  window.Hints = { init, setHints, close, hide, show };
+  function show() {
+    state.visible = true;
+    if (state.mounted) applyVisibility();
+  }
+
+  function hide() {
+    state.visible = false;
+    if (state.mounted) applyVisibility();
+  }
+
+  window.Hints = { init, setHints, open, close, show, hide };
 })();
