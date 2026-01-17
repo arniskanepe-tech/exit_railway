@@ -2,7 +2,7 @@
   --disk-size: min(6vw, 80px);          /* stūrī */
   --disk-size-active: min(70vw, 560px); /* centrā */
   --pad: 18px;
-  --stack-size: 140px;
+  --stack-size: 108px;
 }
 
 *{ box-sizing:border-box; }
