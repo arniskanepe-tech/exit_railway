@@ -20,18 +20,17 @@
   </div>
 
   <main class="scene" id="scene">
-
     <!-- DISKS (sākumā stūrī, lēni griežas) -->
     <div class="disk-shell disk-corner" id="diskShell" aria-label="Disk">
       <canvas id="diskCanvas" width="900" height="900"></canvas>
-      <!-- uzrakstu noņemam (CSS arī var noslēpt) -->
-      <div class="disk-hint"></div>
+      <div class="disk-hint">Klikšķini, lai atvērtu</div>
     </div>
 
     <!-- MĒRĶIS IKONA (atver uzdevuma kārti centrā) -->
     <button id="targetBtn" class="target-btn" type="button" aria-label="Mērķis">
       <span class="target-icon" aria-hidden="true">
-        <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
+        <!-- vienkārša “target” ikona (SVG) -->
+        <svg viewBox="0 0 64 64" width="34" height="34" role="img" aria-hidden="true">
           <circle cx="32" cy="32" r="22" fill="none" stroke="white" stroke-width="4" opacity="0.9"/>
           <circle cx="32" cy="32" r="14" fill="none" stroke="white" stroke-width="4" opacity="0.75"/>
           <circle cx="32" cy="32" r="6"  fill="white" opacity="0.95"/>
@@ -42,7 +41,7 @@
       <span class="target-label">Mērķis</span>
     </button>
 
-    <!-- KĀRTS (atveras tikai centrā; apakšējā stūrī nerādās) -->
+    <!-- KĀRTS (tagad atveras tikai centrā; apakšējā stūrī vairs nerādās) -->
     <section class="task-card" id="taskCard" aria-label="Uzdevums" aria-hidden="true">
       <div class="card-header">
         <div class="card-title" id="cardTitle">Uzdevums</div>
