@@ -274,7 +274,7 @@ html,body{
   position:absolute;
   left: calc(var(--pad) + var(--disk-size) + 14px);
   top: var(--pad);
-  width: 140px;
+  width: var(--stack-size);
   height: 96px;
   z-index: 6;
   pointer-events: auto;
