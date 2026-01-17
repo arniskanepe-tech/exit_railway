@@ -124,8 +124,8 @@ html,body{
 
   display:flex;
   align-items:center;
-  gap: 5px;
-  padding: 8px 5px;
+  gap: 2px;
+  padding: 8px 2px;
 
   cursor:pointer;
   user-select:none;
