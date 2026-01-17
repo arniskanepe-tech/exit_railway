@@ -400,6 +400,10 @@ html,body{
 
 /* Mobile: ja vietas maz, noliekam hintus zem diska */
 @media (max-width: 520px){
+   :root{
+    --disk-size: min(12vw,72px);
+    --disk-size-active: min(85vw,420px);
+    }
   .hint-stack{
     left: var(--pad);
     top: calc(var(--pad) + var(--disk-size) + 5px);
@@ -408,8 +412,4 @@ html,body{
     left: var(--pad);
     top: calc(var(--pad) + var(--disk-size) + 90px);
   }
-  :root{
-    --disk-size: min(12vw,72px);
-    --disk-size-active: min(85vw,420px);
-    }
 }
