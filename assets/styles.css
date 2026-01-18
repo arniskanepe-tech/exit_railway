@@ -413,3 +413,9 @@ html,body{
     top: calc(var(--pad) + var(--disk-size) + 90px);
   }
 }
+
+@media (max-width: 850px){
+  :root{
+    --disk-size-active: min(35vw, 390px);
+  }
+}
