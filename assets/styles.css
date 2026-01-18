@@ -414,7 +414,7 @@ html,body{
   }
 }
 
-@media (max-width: 850px){
+@media (max-height: 450px){
   :root{
     --disk-size-active: min(35vw, 390px);
   }
