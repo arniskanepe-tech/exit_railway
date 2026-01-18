@@ -391,9 +391,14 @@ html,body{
   z-index: 60 !important;
   top: 50%;
   left: 50%;
-  width: min(720px, 92vw);
+  
+  width: auto;                       /* ⭐ galvenais */
+  max-width: min(520px, 88vw);       /* ⭐ griesti */
+  min-width: 260px;                  /* ⭐ UX drošība */
+
   height: auto;
-  min-height: 180px;
+  min-height: unset;
+  
   transform: translate(-50%, -50%) !important;
   cursor: default;
 }
