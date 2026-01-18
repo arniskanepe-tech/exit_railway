@@ -37,7 +37,7 @@
       `,
       hint1: "Tu taču saprati, ka šī uzdevuma veikšanai nāksies silti saģērbties!",
       hint2: "Pievēsi uzmanību skaitļiem uz pakāpieniem? Esi kaut kur tos redzējusi? Un tas ja gadienā kāds cipars nav redzams tas nenozīmē ka dabā viņa nav, ja?",
-      hint3: "Formula uz akmens droši vien nav rakstīta tāpat vien! Zini ko nozīmē tas simbols. Iegūtajā kodā cipari ir atšķirīgi un pakāpienu izmēri bildē nav vienādi.",
+      hint3: "Formula uz akmens droši vien nav rakstīta tāpat vien! Zini ko nozīmē tas simbols. Iegūtajā kodā cipari ir atšķirīgi un pakāpienu vērtības nav vienādas. Kādam krāsas pakāpienam lielāka vērtība, kādam mazāka.",
     },
     {
       id: 3,
