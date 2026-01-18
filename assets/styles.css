@@ -386,39 +386,37 @@ html,body{
   overflow-wrap: anywhere;
 }
 
-/* Atvērta kārts: centrā + flip uz muguru */
+/* Atvērtā kārts: lai aug pēc satura + nelien ārā */
 .hint-card.is-open{
   position: fixed;
   z-index: 60 !important;
   top: 50%;
   left: 50%;
-  
-  width: auto;                       /* ⭐ galvenais */
-  max-width: min(520px, 88vw);       /* ⭐ griesti */
-  min-width: 260px;                  /* ⭐ UX drošība */
+
+  width: auto;
+  max-width: min(520px, 88vw);
+  min-width: 260px;
 
   height: auto;
-  min-height: unset;
-  
+  max-height: min(70vh, 70svh);   /* <- svarīgi */
+  overflow: auto;                  /* <- svarīgi */
+  -webkit-overflow-scrolling: touch;
+
   transform: translate(-50%, -50%) !important;
   cursor: default;
 }
 
-  /* 1) Atvērtā kārts lai patiešām aug ar saturu (absolute -> relative tikai open režīmā) */
-  .hint-card.is-open .hint-card-face{
+/* Open režīmā: absolute sejas padarām par “normālu” saturu */
+.hint-card.is-open .hint-card-face{
   position: relative;
   inset: auto;
+  padding: 14px;
 }
 
-  /* 2) Atvērtā režīmā back saturu neliekam centrā, bet no augšas */
-  .hint-card.is-open .hint-back{
+/* Open režīmā: back saturu sākam no augšas */
+.hint-card.is-open .hint-back{
   justify-content: flex-start;
   align-items: flex-start;
-}
-
-  /* 3) Mazāks "gaisa spilvens" augšā (ja gribi tuvāk malai) */
-  .hint-card.is-open .hint-card-face{
-  padding: 14px; /* vari samazināt uz 12px, 10px */
 }
 
 /* kad atvērta, nerotējam */
