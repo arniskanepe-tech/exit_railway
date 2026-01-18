@@ -399,6 +399,12 @@
   function showFinalScreen() {
     if (isOpen) closeDisk();
     closeTask();
+    
+    if (taskCard) {
+    taskCard.classList.remove("is-open");
+    taskCard.classList.remove("show-result-only");
+    }
+    if (taskBackdrop) taskBackdrop.hidden = true;
 
     if (window.Hints && typeof window.Hints.hide === "function") {
       window.Hints.hide();
@@ -432,10 +438,6 @@
         setNextVisible(false);
         resultMsg.textContent = "";
         feedback.innerHTML = `Pareizi!`;
-
-      // 🔴 garantēti aizveram visu pirms fināla
-      closeTask();
-      taskCard.classList.remove("show-result-only");
 
         setTimeout(() => {
           showFinalScreen();
