@@ -77,9 +77,9 @@
         <p></p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
-      hint1: "",
-      hint2: "",
-      hint3: "",
+      hint1: "Šāvējām ir stilīgi kostīmi, ne? Un krāsas pazīstamas, bet neviena nav baltās drēbēs, labi ka ir ziema un daudz sniega?",
+      hint2: "Kā tev kafejnīcas nosaukums? Un piedāvātās atlaides?",
+      hint3: "Tīra matemātika, šur tur %, šur tur trijstūri :))) Ā - vēl liekas nulles, bet tāpēc jau trasei ir mērogs",
     },
   ];
 
