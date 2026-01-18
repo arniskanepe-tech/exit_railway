@@ -35,9 +35,9 @@
         <p>Steady, Dress up, Go!</p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
-      hint1: "",
-      hint2: "",
-      hint3: "",
+      hint1: "Tu taču saprati, ka šī uzdevuma veikšanai nāksies silti saģērbties!",
+      hint2: "Pievēsi uzmanību skaitļiem uz pakāpieniem? Esi kaut kur tos redzējusi? Un tas ja gadienā kāds cipars nav redzams tas nenozīmē ka dabā viņa nav, ja?",
+      hint3: "Formula uz akmens droši vien nav rakstīta tāpat vien! Zini ko nozīmē tas simbols. Iegūtajā kodā cipari ir atšķirīgi un pakāpienu izmēri bildē nav vienādi.",
     },
     {
       id: 3,
