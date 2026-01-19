@@ -318,8 +318,8 @@ html,body{
 
 /* Stacked pozīcijas */
 .hc-1{ top: 0;    z-index: 3; --rot: -2deg; transform: rotate(-2deg); }
-.hc-2{ top: 12px; z-index: 2; --rot:  1deg; transform: rotate(1deg); }
-.hc-3{ top: 24px; z-index: 1; --rot:  3deg; transform: rotate(3deg); }
+.hc-2{ top: 20px; z-index: 2; --rot:  1deg; transform: rotate(1deg); }
+.hc-3{ top: 40px; z-index: 1; --rot:  3deg; transform: rotate(3deg); }
 
 /* Hover/focus: pacel virs pārējām + neliels lift */
 .hint-card:hover,
