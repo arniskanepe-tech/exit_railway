@@ -107,6 +107,87 @@ function requireAdmin(req, res, next) {
   return res.status(401).json({ ok: false, error: "Unauthorized" });
 }
 
+// ===== Admin: vienreizējs imports no seed/levels.json =====
+// ŠIS ENDPOINTS:
+// - ielasa seed/levels.json
+// - pievieno DB trūkstošos līmeņus (droši: nepārraksta esošos)
+// - ideāli vienreizējai “pārcelšanai” uz Railway
+app.post("/api/admin/import-seed", requireAdmin, async (req, res) => {
+  try {
+    const seedPath = path.join(__dirname, "seed", "levels.json");
+    const raw = fs.readFileSync(seedPath, "utf-8");
+    const seedLevels = JSON.parse(raw);
+
+    if (!Array.isArray(seedLevels) || seedLevels.length === 0) {
+      return res.status(400).json({ ok: false, error: "seed/levels.json ir tukšs vai nav masīvs" });
+    }
+
+    // Paņemam esošos līmeņus, lai varam noteikt "trūkstošos".
+    // Drošais variants: salīdzinām pēc (background + targetSlot + answer).
+    // (Ja tev vēlāk būs "slug" vai "externalId", tad salīdzināsim pēc tā.)
+    const { rows: existing } = await db.query(
+      `SELECT id, background, target_slot AS "targetSlot", answer
+       FROM levels`
+    );
+
+    const keyOf = (lvl) => {
+      const bg = String(lvl.background ?? "");
+      const ts = String(lvl.targetSlot ?? "");
+      const ans = String(lvl.answer ?? "");
+      return `${bg}__${ts}__${ans}`;
+    };
+
+    const existingKeys = new Set(existing.map(r => `${r.background}__${r.targetSlot}__${r.answer}`));
+
+    let inserted = 0;
+    let skipped = 0;
+
+    for (const lvl of seedLevels) {
+      const key = keyOf(lvl);
+      if (existingKeys.has(key)) {
+        skipped++;
+        continue;
+      }
+
+      await db.query(
+        `INSERT INTO levels
+         (title, background, target_slot, answer, card_html, hint1, hint2, hint3, active, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          lvl.title ?? "Uzdevums",
+          lvl.background ?? "bg.jpg",
+          Number(lvl.targetSlot ?? 1),
+          String(lvl.answer ?? ""),
+          String(lvl.cardHtml ?? ""),
+          lvl.hint1 ?? null,
+          lvl.hint2 ?? null,
+          lvl.hint3 ?? null,
+          (lvl.active !== undefined ? !!lvl.active : true),
+          Number(lvl.sortOrder ?? 100),
+        ]
+      );
+
+      inserted++;
+      existingKeys.add(key);
+    }
+
+    return res.json({
+      ok: true,
+      summary: {
+        totalInSeed: seedLevels.length,
+        inserted,
+        skipped,
+      }
+    });
+  } catch (err) {
+    console.error("Kļūda POST /api/admin/import-seed:", err);
+    return res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+
+
+
 // ================== API (GAME) ==================
 // Atgriež tikai aktīvos līmeņus pareizā secībā
 app.get("/api/levels/active", async (req, res) => {
