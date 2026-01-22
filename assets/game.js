@@ -1,25 +1,24 @@
 // assets/game.js
-(() => {
+(async () => {
   // ============ Konfigurācija ============
   const symbols = ["★","☾","▲","◆","✚","⬣","⬟","●","▣"];
 
-const bgm = document.getElementById("bgm");
-if (bgm) bgm.volume = 0.22; // fons klusāks
+  const bgm = document.getElementById("bgm");
+  if (bgm) bgm.volume = 0.22; // fons klusāks
 
-function startBgmOnce() {
-  if (!bgm) return;
-  // ja jau skan - neko
-  if (!bgm.paused) return;
+  function startBgmOnce() {
+    if (!bgm) return;
+    // ja jau skan - neko
+    if (!bgm.paused) return;
 
-  bgm.play().catch(() => {
-    // ja vēl nobloķēts - nekas, mēģināsim nākamajā user-gesture
-  });
-}
+    bgm.play().catch(() => {
+      // ja vēl nobloķēts - nekas, mēģināsim nākamajā user-gesture
+    });
+  }
 
-// Droši: jebkurš pirmais klikšķis/tap/taustiņš
-window.addEventListener("pointerdown", startBgmOnce, { once: true });
-window.addEventListener("keydown", startBgmOnce, { once: true });
-
+  // Droši: jebkurš pirmais klikšķis/tap/taustiņš
+  window.addEventListener("pointerdown", startBgmOnce, { once: true });
+  window.addEventListener("keydown", startBgmOnce, { once: true });
 
   // ===== Welcome / start gate =====
   const intro = {
@@ -28,7 +27,8 @@ window.addEventListener("keydown", startBgmOnce, { once: true });
     wrongHint: "tiešām?"
   };
 
-  const levels = [
+  // ===== Default līmeņi (fallback, ja DB nav pieejams) =====
+  const DEFAULT_LEVELS = [
     {
       id: 1,
       title: "",
@@ -100,6 +100,32 @@ window.addEventListener("keydown", startBgmOnce, { once: true });
       hint3: "Tīra matemātika, šur tur %, šur tur trijstūri :))) Ā - vēl liekas nulles, bet tāpēc jau trasei ir mērogs",
     },
   ];
+
+  // ŠEIT būs reālie līmeņi: no DB vai fallback uz DEFAULT_LEVELS
+  let levels = DEFAULT_LEVELS;
+
+  // ===== Ielādē līmeņus no servera (DB) =====
+  // Ko dara:
+  // - mēģina paņemt aktīvos līmeņus no /api/levels/active
+  // - ja izdodas -> spēle izmanto DB
+  // - ja neizdodas -> spēle izmanto DEFAULT_LEVELS
+  async function loadLevelsFromApi(){
+    try {
+      const res = await fetch("/api/levels/active", { cache: "no-store" });
+      const data = await res.json();
+
+      if (data && data.ok && Array.isArray(data.levels) && data.levels.length > 0) {
+        levels = data.levels;
+        console.log("Levels loaded from DB:", levels.length);
+      } else {
+        levels = DEFAULT_LEVELS;
+        console.warn("DB levels empty/invalid -> using DEFAULT_LEVELS");
+      }
+    } catch (e) {
+      levels = DEFAULT_LEVELS;
+      console.warn("Failed to load levels from API -> using DEFAULT_LEVELS", e);
+    }
+  }
 
   const wrongMessages = [
     { text: "Tā jau nu gan nebūs",                 sound: "assets/sound/wrong_01.m4a" },
@@ -417,10 +443,10 @@ window.addEventListener("keydown", startBgmOnce, { once: true });
   function showFinalScreen() {
     if (isOpen) closeDisk();
     closeTask();
-    
+
     if (taskCard) {
-    taskCard.classList.remove("is-open");
-    taskCard.classList.remove("show-result-only");
+      taskCard.classList.remove("is-open");
+      taskCard.classList.remove("show-result-only");
     }
     if (taskBackdrop) taskBackdrop.hidden = true;
 
@@ -506,5 +532,10 @@ window.addEventListener("keydown", startBgmOnce, { once: true });
   // ===== start =====
   disk.setInteractive(false);
   disk.setInteractive(true);
+
+  // 🔥 ŠIS ir vienīgais jaunais “start” solis:
+  // mēģinam ielādēt līmeņus no DB, bet ja neizdodas — spēle tik un tā strādā ar DEFAULT_LEVELS.
+  await loadLevelsFromApi();
+
   setupWelcome();
 })();
