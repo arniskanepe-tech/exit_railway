@@ -3,6 +3,24 @@
   // ============ Konfigurācija ============
   const symbols = ["★","☾","▲","◆","✚","⬣","⬟","●","▣"];
 
+const bgm = document.getElementById("bgm");
+if (bgm) bgm.volume = 0.22; // fons klusāks
+
+function startBgmOnce() {
+  if (!bgm) return;
+  // ja jau skan - neko
+  if (!bgm.paused) return;
+
+  bgm.play().catch(() => {
+    // ja vēl nobloķēts - nekas, mēģināsim nākamajā user-gesture
+  });
+}
+
+// Droši: jebkurš pirmais klikšķis/tap/taustiņš
+window.addEventListener("pointerdown", startBgmOnce, { once: true });
+window.addEventListener("keydown", startBgmOnce, { once: true });
+
+
   // ===== Welcome / start gate =====
   const intro = {
     greeting: "Čau, Nikola! Daudz laimes dzimšanas dienā! Esam tev sarūpējuši vienu dāvanu, kas liks parakāties atmiņas dzīlēs, paskaitīt, iespējams pasvīst un cerams sagādās pozitīvas emocijas. Vai esi gatava?",
@@ -16,13 +34,13 @@
       title: "",
       background: "bg.jpg",
       targetSlot: 1,      // ☾
-      answer: "345",
+      answer: "532",
       cardHtml: `
         <p>Kas par fantastisku Gadu Secību bijusi.</p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
       hint1: "Šobrīd ir 2026.gads.",
-      hint2: "Tu taču saproti, ka gadi iet no mazākā uz lielāko.",
+      hint2: "Tu taču saproti, mazāks riņķis agrāks gads - loģiski ne?",
       hint3: "Bledā mēs bijām 2025.gadā! Un tu saproti, ka uz diska nevar izvēlēties vairāk kā 1 ciparu, turklāt kāda jēga visos apļos būtu rakstīt to, kas atkārtojas! ",
     },
     {
@@ -30,28 +48,28 @@
       title: "",
       background: "bg1.jpg",
       targetSlot: 0,      // ★
-      answer: "149",
+      answer: "941",
       cardHtml: `
         <p>Steady, Dress up, Go!</p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
-      hint1: "Tu taču saprati, ka šī uzdevuma veikšanai nāksies silti saģērbties!",
-      hint2: "Pievēsi uzmanību skaitļiem uz pakāpieniem? Esi kaut kur tos redzējusi? Un tas ja gadienā kāds cipars nav redzams tas nenozīmē ka dabā viņa nav, ja?",
-      hint3: "Formula uz akmens droši vien nav rakstīta tāpat vien! Zini ko nozīmē tas simbols. Iegūtajā kodā cipari ir atšķirīgi un pakāpienu vērtības nav vienādas. Kādam krāsas pakāpienam lielāka vērtība, kādam mazāka.",
+      hint1: "Šī uzdevuma veikšanai nāksies silti saģērbties!",
+      hint2: "Pievēsi uzmanību skaitļiem uz pakāpieniem? Esi kaut kur tos redzējusi? Ja gadienā kāds cipars nav redzams tas nenozīmē ka dabā viņa nav, ja?",
+      hint3: "Formula uz akmens droši vien nav rakstīta tāpat viens. Iegūtajā kodā cipari ir atšķirīgi un pakāpienu vērtības nav vienādas. Kādam krāsas pakāpienam lielāka vērtība, kādam mazāka. Ja ar to vēl ir par maz, tad viss ko varu piebilst ir - All the way to the top",
     },
     {
       id: 3,
       title: "",
       background: "bg2.jpg",
       targetSlot: 3,      // ◆
-      answer: "159",
+      answer: "591",
       cardHtml: `
         <p></p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
       hint1: "Šo uzdevumu nevarēs veikt bez Tavas mobilās ierīces palīdzības.",
       hint2: "Bildē izmētātie skaitļi nav mazsvarīgi, tikai ko tie nozīmē, un kāds tam sakars ar mobilo ierīci?",
-      hint3: "Varētu būt viens no datuma formātiem, ne? Un vai tik tu tajā datumā neveici skrējienu? Nez cik tas bija grūts?",
+      hint3: "Varētu būt viens no datuma formātiem, ne? Un vai tik tu tajā datumā neveici skrējienu? Nez cik tas bija grūts? Jā un sirds ritms ir aidzdomīgi daudzkrāsains.",
     },
     {
       id: 4,
@@ -63,7 +81,7 @@
         <p></p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
-      hint1: "Tev var nākties meklēt bildē sīkumus",
+      hint1: "Tev var nākties meklēt bildē sīkumus - zooom in",
       hint2: "3 grāmatas 3 valodas 3 skaiļi",
       hint3: "Grāmatas ir dažādās krāsās, pa visu bildi izmētāti teksti",
     },
@@ -77,7 +95,7 @@
         <p></p>
         <p class="muted">Uzgriez kodu pretī izvēlētajam simbolam.</p>
       `,
-      hint1: "Šāvējām ir stilīgi kostīmi, ne? Un krāsas pazīstamas, bet neviena nav baltās drēbēs, labi ka ir ziema un daudz sniega?",
+      hint1: "Šāvējām ir stilīgi kostīmi, ne? Un krāsas pazīstamas, bet neviena nav baltās drēbēs, labi ka ir ziema un daudz sniega.",
       hint2: "Kā tev kafejnīcas nosaukums? Un piedāvātās atlaides?",
       hint3: "Tīra matemātika, šur tur %, šur tur trijstūri :))) Ā - vēl liekas nulles, bet tāpēc jau trasei ir mērogs",
     },
