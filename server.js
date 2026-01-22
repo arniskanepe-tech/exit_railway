@@ -4,11 +4,12 @@
 // ŠIS SERVERIS (tagad):
 // 1) Servē statiskos failus (spēle un admin lapas)
 // 2) Dod stabilus URL /admin un /admin/panel
-// 3) Inicializē Postgres (migrācija + seed)
+// 3) Inicializē Postgres (migrācija + seed tikai, ja DB ir tukša)
 // 4) API spēlei:   GET  /api/levels/active
-// 5) API adminam:  GET  /api/admin/levels   (jauns)
-//                 PUT  /api/admin/levels/:id
-// 6) Healthcheck:  GET  /health
+// 5) API adminam:  GET  /api/admin/levels
+//                 PUT  /api/admin/levels/:id   (v1: tikai active)
+// 6) Vienreizējs imports no seed: POST /api/admin/import-seed (drošs: transakcija, nepārraksta)
+// 7) Healthcheck:  GET  /health
 
 const path = require("path");
 const express = require("express");
@@ -25,6 +26,8 @@ async function runMigrations() {
   console.log("DB migrācijas izpildītas (001_init.sql)");
 }
 
+// Seed tiek palaists tikai tad, ja levels tabula ir tukša.
+// (Railway DB parasti paliek dzīva starp deployiem.)
 async function seedIfEmpty() {
   const { rows } = await db.query("SELECT COUNT(*)::int AS count FROM levels");
   const count = rows?.[0]?.count ?? 0;
@@ -37,6 +40,11 @@ async function seedIfEmpty() {
   const seedPath = path.join(__dirname, "seed", "levels.json");
   const raw = fs.readFileSync(seedPath, "utf-8");
   const seedLevels = JSON.parse(raw);
+
+  if (!Array.isArray(seedLevels) || seedLevels.length === 0) {
+    console.warn("Seed: seed/levels.json ir tukšs vai nav masīvs — neko neielieku.");
+    return;
+  }
 
   console.log(`Seed: ielieku ${seedLevels.length} līmeņus...`);
 
@@ -107,12 +115,16 @@ function requireAdmin(req, res, next) {
   return res.status(401).json({ ok: false, error: "Unauthorized" });
 }
 
-// ===== Admin: vienreizējs imports no seed/levels.json =====
-// ŠIS ENDPOINTS:
+// ================== ADMIN: IMPORT SEED (ONE-TIME) ==================
+// POST /api/admin/import-seed
 // - ielasa seed/levels.json
 // - pievieno DB trūkstošos līmeņus (droši: nepārraksta esošos)
-// - ideāli vienreizējai “pārcelšanai” uz Railway
+// - transakcija: vai nu ieliek visu, vai nevienu
+//
+// "Trūkstošo" noteikšana šobrīd: pēc (background + targetSlot + answer).
+// Ja vēlāk gribēsi 100% stabilu ID, varam pievienot DB laukam "slug" vai "external_id".
 app.post("/api/admin/import-seed", requireAdmin, async (req, res) => {
+  let client;
   try {
     const seedPath = path.join(__dirname, "seed", "levels.json");
     const raw = fs.readFileSync(seedPath, "utf-8");
@@ -122,34 +134,36 @@ app.post("/api/admin/import-seed", requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, error: "seed/levels.json ir tukšs vai nav masīvs" });
     }
 
-    // Paņemam esošos līmeņus, lai varam noteikt "trūkstošos".
-    // Drošais variants: salīdzinām pēc (background + targetSlot + answer).
-    // (Ja tev vēlāk būs "slug" vai "externalId", tad salīdzināsim pēc tā.)
-    const { rows: existing } = await db.query(
-      `SELECT id, background, target_slot AS "targetSlot", answer
+    // Transakcija (vienā connection), lai imports ir drošs
+    client = await db.pool.connect();
+    await client.query("BEGIN");
+
+    const { rows: existing } = await client.query(
+      `SELECT background, target_slot AS "targetSlot", answer
        FROM levels`
     );
 
-    const keyOf = (lvl) => {
+    const keyOfRow = (r) => `${r.background}__${r.targetSlot}__${r.answer}`;
+    const keyOfSeed = (lvl) => {
       const bg = String(lvl.background ?? "");
       const ts = String(lvl.targetSlot ?? "");
       const ans = String(lvl.answer ?? "");
       return `${bg}__${ts}__${ans}`;
     };
 
-    const existingKeys = new Set(existing.map(r => `${r.background}__${r.targetSlot}__${r.answer}`));
+    const existingKeys = new Set(existing.map(keyOfRow));
 
     let inserted = 0;
     let skipped = 0;
 
     for (const lvl of seedLevels) {
-      const key = keyOf(lvl);
+      const key = keyOfSeed(lvl);
       if (existingKeys.has(key)) {
         skipped++;
         continue;
       }
 
-      await db.query(
+      await client.query(
         `INSERT INTO levels
          (title, background, target_slot, answer, card_html, hint1, hint2, hint3, active, sort_order)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
@@ -171,22 +185,26 @@ app.post("/api/admin/import-seed", requireAdmin, async (req, res) => {
       existingKeys.add(key);
     }
 
+    await client.query("COMMIT");
+
     return res.json({
       ok: true,
       summary: {
         totalInSeed: seedLevels.length,
         inserted,
         skipped,
-      }
+      },
     });
   } catch (err) {
+    if (client) {
+      try { await client.query("ROLLBACK"); } catch (_) {}
+    }
     console.error("Kļūda POST /api/admin/import-seed:", err);
     return res.status(500).json({ ok: false, error: "Server error" });
+  } finally {
+    if (client) client.release();
   }
 });
-
-
-
 
 // ================== API (GAME) ==================
 // Atgriež tikai aktīvos līmeņus pareizā secībā
@@ -212,7 +230,7 @@ app.get("/api/levels/active", async (req, res) => {
 });
 
 // ================== API (ADMIN) ==================
-// ✅ JAUNAIS: atgriež VISUS līmeņus admin panelim (ar active + sortOrder)
+// Atgriež VISUS līmeņus admin panelim (ar active + sortOrder)
 app.get("/api/admin/levels", requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.query(
