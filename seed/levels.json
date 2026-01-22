@@ -1,26 +1,62 @@
 [
   {
-    "title": "Uzdevums #1",
+    "title": "",
     "background": "bg.jpg",
     "targetSlot": 1,
-    "answer": "345",
-    "cardHtml": "<p>Kas par fantastisku gadu secību bijusi.</p>",
-    "hint1": "Paskaties uz ciparu kārtību.",
-    "hint2": "Trīs cipari, katrs savā vietā.",
-    "hint3": "Nav jāmin uz dullo.",
+    "answer": "532",
+    "cardHtml": "<p>Kas par fantastisku Gadu Secību bijusi.</p>\n<p class=\"muted\">Uzgriez kodu pretī izvēlētajam simbolam.</p>",
+    "hint1": "Šobrīd ir 2026.gads.",
+    "hint2": "Tu taču saproti, mazāks riņķis agrāks gads - loģiski ne?",
+    "hint3": "Bledā mēs bijām 2025.gadā! Un tu saproti, ka uz diska nevar izvēlēties vairāk kā 1 ciparu, turklāt kāda jēga visos apļos būtu rakstīt to, kas atkārtojas! ",
     "active": true,
-    "sortOrder": 10
+    "sortOrder": 100
   },
   {
-    "title": "Uzdevums #2",
+    "title": "",
     "background": "bg1.jpg",
-    "targetSlot": 3,
-    "answer": "728",
-    "cardHtml": "<p>Katrs simbols nozīmē ciparu.</p>",
-    "hint1": "Simboli nav nejauši.",
-    "hint2": "Pievērs uzmanību diskiem.",
-    "hint3": "Vidējais disks ir atslēga.",
+    "targetSlot": 0,
+    "answer": "941",
+    "cardHtml": "<p>Steady, Dress up, Go!</p>\n<p class=\"muted\">Uzgriez kodu pretī izvēlētajam simbolam.</p>",
+    "hint1": "Šī uzdevuma veikšanai nāksies silti saģērbties!",
+    "hint2": "Pievēsi uzmanību skaitļiem uz pakāpieniem? Esi kaut kur tos redzējusi? Ja gadienā kāds cipars nav redzams tas nenozīmē ka dabā viņa nav, ja?",
+    "hint3": "Formula uz akmens droši vien nav rakstīta tāpat viens. Iegūtajā kodā cipari ir atšķirīgi un pakāpienu vērtības nav vienādas. Kādam krāsas pakāpienam lielāka vērtība, kādam mazāka. Ja ar to vēl ir par maz, tad viss ko varu piebilst ir - All the way to the top",
     "active": true,
-    "sortOrder": 20
+    "sortOrder": 200
+  },
+  {
+    "title": "",
+    "background": "bg2.jpg",
+    "targetSlot": 3,
+    "answer": "591",
+    "cardHtml": "<p></p>\n<p class=\"muted\">Uzgriez kodu pretī izvēlētajam simbolam.</p>",
+    "hint1": "Šo uzdevumu nevarēs veikt bez Tavas mobilās ierīces palīdzības.",
+    "hint2": "Bildē izmētātie skaitļi nav mazsvarīgi, tikai ko tie nozīmē, un kāds tam sakars ar mobilo ierīci?",
+    "hint3": "Varētu būt viens no datuma formātiem, ne? Un vai tik tu tajā datumā neveici skrējienu? Nez cik tas bija grūts? Jā un sirds ritms ir aidzdomīgi daudzkrāsains.",
+    "active": true,
+    "sortOrder": 300
+  },
+  {
+    "title": "",
+    "background": "bg3.jpg",
+    "targetSlot": 2,
+    "answer": "317",
+    "cardHtml": "<p></p>\n<p class=\"muted\">Uzgriez kodu pretī izvēlētajam simbolam.</p>",
+    "hint1": "Tev var nākties meklēt bildē sīkumus - zooom in",
+    "hint2": "3 grāmatas 3 valodas 3 skaiļi",
+    "hint3": "Grāmatas ir dažādās krāsās, pa visu bildi izmētāti teksti",
+    "active": true,
+    "sortOrder": 400
+  },
+  {
+    "title": "",
+    "background": "bg4.jpg",
+    "targetSlot": 6,
+    "answer": "368",
+    "cardHtml": "<p></p>\n<p class=\"muted\">Uzgriez kodu pretī izvēlētajam simbolam.</p>",
+    "hint1": "Šāvējām ir stilīgi kostīmi, ne? Un krāsas pazīstamas, bet neviena nav baltās drēbēs, labi ka ir ziema un daudz sniega.",
+    "hint2": "Kā tev kafejnīcas nosaukums? Un piedāvātās atlaides?",
+    "hint3": "Tīra matemātika, šur tur %, šur tur trijstūri :))) Ā - vēl liekas nulles, bet tāpēc jau trasei ir mērogs",
+    "active": true,
+    "sortOrder": 500
   }
 ]
