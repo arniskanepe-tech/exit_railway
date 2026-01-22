@@ -8,15 +8,13 @@
 
   function startBgmOnce() {
     if (!bgm) return;
-    // ja jau skan - neko
     if (!bgm.paused) return;
 
     bgm.play().catch(() => {
-      // ja vēl nobloķēts - nekas, mēģināsim nākamajā user-gesture
+      // iOS var nobloķēt līdz pirmajam user-gesture
     });
   }
 
-  // Droši: jebkurš pirmais klikšķis/tap/taustiņš
   window.addEventListener("pointerdown", startBgmOnce, { once: true });
   window.addEventListener("keydown", startBgmOnce, { once: true });
 
@@ -101,19 +99,13 @@
     },
   ];
 
-  // ŠEIT būs reālie līmeņi: no DB vai fallback uz DEFAULT_LEVELS
   let levels = DEFAULT_LEVELS;
 
-  // ===== Ielādē līmeņus no servera (DB) =====
-  // Ko dara:
-  // - mēģina paņemt aktīvos līmeņus no /api/levels/active
-  // - ja izdodas -> spēle izmanto DB
-  // - ja neizdodas -> spēle izmanto DEFAULT_LEVELS
+  // ===== Ielādē līmeņus no DB (Railway) ar fallback =====
   async function loadLevelsFromApi(){
     try {
       const res = await fetch("/api/levels/active", { cache: "no-store" });
       const data = await res.json();
-
       if (data && data.ok && Array.isArray(data.levels) && data.levels.length > 0) {
         levels = data.levels;
         console.log("Levels loaded from DB:", levels.length);
@@ -266,7 +258,6 @@
   function openTask(){
     if (!taskCard) return;
 
-    // ja atvērti hinti vai disks — aizveram
     if (window.Hints && typeof window.Hints.close === "function") window.Hints.close();
     if (isOpen) closeDisk();
 
@@ -287,12 +278,10 @@
     if (taskBackdrop) taskBackdrop.hidden = true;
   }
 
-  // backdrop click closes
   if (taskBackdrop) {
     taskBackdrop.addEventListener("pointerdown", () => closeTask());
   }
 
-  // Target icon click
   if (targetBtn) {
     targetBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -310,7 +299,6 @@
 
     scene.style.backgroundImage = `url("assets/${lvl.background}")`;
 
-    // card content (nemainām struktūru, tikai saturu)
     cardTitle.textContent = lvl.title;
     cardBody.innerHTML = lvl.cardHtml;
 
@@ -320,7 +308,6 @@
     solved = false;
     resetResultUI();
 
-    // instrukcijas teksts (saglabājam tavu loģiku)
     if (isOpen) {
       feedback.innerHTML =
         `Uzgriez disku, līdz pretī mērķa simbolam <strong>${symbols[lvl.targetSlot]}</strong> redzi kodu. ` +
@@ -332,10 +319,7 @@
       disk.setInteractive(true);
     }
 
-    // uz jaunā level – atkal rādam pilno uzdevumu
     taskCard.classList.remove("show-result-only");
-
-    // uzdevuma kārti pēc level change neturam vaļā
     closeTask();
   }
 
@@ -390,7 +374,6 @@
     if (isOpen) return;
     isOpen = true;
 
-    // ja bija atvērts uzdevums/hinti — aizveram
     closeTask();
     if (window.Hints && typeof window.Hints.close === "function") window.Hints.close();
 
@@ -415,15 +398,12 @@
     disk.setInteractive(false);
   }
 
-  // atver tikai stūrī
   diskShell.addEventListener("click", () => {
     if (!diskShell.classList.contains("disk-corner")) return;
     openDisk();
   });
 
-  // klikšķis ārpus diska aizver
   document.addEventListener("pointerdown", (e) => {
-    // disk close
     if (isOpen) {
       if (!diskShell.contains(e.target) && !(taskCard && taskCard.contains(e.target))) {
         closeDisk();
@@ -431,7 +411,6 @@
     }
   });
 
-  // ESC: aizver uzdevumu un hintus
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     closeTask();
@@ -494,7 +473,7 @@
       setNextVisible(true);
       feedback.innerHTML = `Pareizi! Spied <strong>Tālāk</strong>, lai pārietu uz nākamo uzdevumu.`;
       taskCard.classList.add("show-result-only");
-      openTask(); // ✅ automātiski atver uzdevuma kārti, lai var uzreiz spiest "Tālāk"
+      openTask();
     } else {
       solved = false;
       disk.renderStatus("NĒ", false);
@@ -533,8 +512,7 @@
   disk.setInteractive(false);
   disk.setInteractive(true);
 
-  // 🔥 ŠIS ir vienīgais jaunais “start” solis:
-  // mēģinam ielādēt līmeņus no DB, bet ja neizdodas — spēle tik un tā strādā ar DEFAULT_LEVELS.
+  // mēģinam ielādēt no DB, ja nesanāk — fallback uz DEFAULT_LEVELS
   await loadLevelsFromApi();
 
   setupWelcome();
