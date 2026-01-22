@@ -1,13 +1,14 @@
 // server.js
 // Disku spēle + Admin v1 (serveris)
 //
-// ŠIS SERVERIS (šobrīd):
+// ŠIS SERVERIS (tagad):
 // 1) Servē statiskos failus (spēle un admin lapas)
-// 2) Dod stabilus URL /admin un /admin/panel.html
-//
-// Vēlākajos soļos mēs pievienosim:
-// - PostgreSQL (Railway) pieslēgumu
-// - /api/levels un /api/admin/levels maršrutus
+// 2) Dod stabilus URL /admin un /admin/panel
+// 3) Inicializē Postgres (migrācija + seed)
+// 4) API spēlei:   GET  /api/levels/active
+// 5) API adminam:  GET  /api/admin/levels   (jauns)
+//                 PUT  /api/admin/levels/:id
+// 6) Healthcheck:  GET  /health
 
 const path = require("path");
 const express = require("express");
@@ -16,22 +17,18 @@ const fs = require("fs");
 // DB (PostgreSQL)
 const db = require("./db");
 
-// Vienkārša migrācija: izpildām SQL failu startējoties,
-// lai tabula 'levels' eksistētu.
-async function runMigrations(){
+// ================== DB INIT ==================
+async function runMigrations() {
   const sqlPath = path.join(__dirname, "migrations", "001_init.sql");
   const sql = fs.readFileSync(sqlPath, "utf-8");
   await db.query(sql);
   console.log("DB migrācijas izpildītas (001_init.sql)");
 }
 
-// Ieliek 1 demo līmeni, ja DB ir tukša.
-// (Lai spēle uzreiz “dzīvo”, pat ja admin vēl nav ielicis līmeņus.)
-// Sākotnējie dati: ieliekam visus līmeņus no seed/levels.json,
-// bet TIKAI tad, ja tabula levels ir tukša.
-async function seedIfEmpty(){
+async function seedIfEmpty() {
   const { rows } = await db.query("SELECT COUNT(*)::int AS count FROM levels");
   const count = rows?.[0]?.count ?? 0;
+
   if (count > 0) {
     console.log(`Seed nav vajadzīgs (levels ieraksti: ${count})`);
     return;
@@ -45,7 +42,8 @@ async function seedIfEmpty(){
 
   for (const lvl of seedLevels) {
     await db.query(
-      `INSERT INTO levels (title, background, target_slot, answer, card_html, hint1, hint2, hint3, active, sort_order)
+      `INSERT INTO levels
+       (title, background, target_slot, answer, card_html, hint1, hint2, hint3, active, sort_order)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
         lvl.title ?? "Uzdevums",
@@ -65,12 +63,14 @@ async function seedIfEmpty(){
   console.log("Seed pabeigts.");
 }
 
+// ================== APP ==================
 const app = express();
 app.use(express.json());
+
+// Railway dod PORT. Lokāli var būt 3000.
 const PORT = process.env.PORT || 3000;
 
-// 1) Statiskie faili (spēles sakne)
-//    Šeit pieņemam, ka index.html un assets atrodas projekta saknē.
+// 1) Statiskie faili (index.html, assets, admin, utt.)
 app.use(express.static(path.join(__dirname)));
 
 // 2) /admin -> admin login lapa
@@ -83,18 +83,19 @@ app.get("/admin/panel", (req, res) => {
   res.sendFile(path.join(__dirname, "admin", "panel.html"));
 });
 
-// 4) Healthcheck (ērti Railway)
+// 4) Healthcheck
+app.get("/health", (req, res) => {
+  res.status(200).json({ ok: true });
+});
 
-
-// ===== Admin aizsardzība (v1) =====
-// Mērķis: ļoti vienkārši aizsargāt admin API ar vienu atslēgu.
-// Klients (admin panelis) sūta header:  x-admin-token: <atslēga>
-// Serveris salīdzina ar ENV mainīgo: ADMIN_TOKEN
-function requireAdmin(req, res, next){
+// ================== ADMIN AUTH ==================
+// Klients (admin panelis) sūta header: x-admin-token: <atslēga>
+// Serveris salīdzina ar ENV: ADMIN_TOKEN
+function requireAdmin(req, res, next) {
   const expected = process.env.ADMIN_TOKEN;
 
-  // Ja ADMIN_TOKEN nav uzstādīts, mēs atļaujam piekļuvi (dev režīms),
-  // bet izdrukājam brīdinājumu. Railway vidē mēs noteikti uzliksim ADMIN_TOKEN.
+  // Ja ADMIN_TOKEN nav uzstādīts -> dev režīms (atvērts),
+  // bet Railway vidē ieteicams uzlikt.
   if (!expected) {
     console.warn("BRĪDINĀJUMS: ADMIN_TOKEN nav uzstādīts. Admin API ir atvērts (dev režīms).");
     return next();
@@ -106,26 +107,54 @@ function requireAdmin(req, res, next){
   return res.status(401).json({ ok: false, error: "Unauthorized" });
 }
 
-// ===== API (spēlei) =====
+// ================== API (GAME) ==================
 // Atgriež tikai aktīvos līmeņus pareizā secībā
 app.get("/api/levels/active", async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT id, title, background, target_slot AS "targetSlot", answer,
-              card_html AS "cardHtml", hint1, hint2, hint3
+      `SELECT id,
+              title,
+              background,
+              target_slot AS "targetSlot",
+              answer,
+              card_html AS "cardHtml",
+              hint1, hint2, hint3
        FROM levels
        WHERE active = TRUE
        ORDER BY sort_order ASC, id ASC`
     );
     res.json({ ok: true, levels: rows });
   } catch (err) {
-    console.error("Kļūda /api/levels/active:", err);
+    console.error("Kļūda GET /api/levels/active:", err);
     res.status(500).json({ ok: false, error: "Server error" });
   }
 });
 
-app.get("/health", (req, res) => {
-  res.status(200).json({ ok: true });
+// ================== API (ADMIN) ==================
+// ✅ JAUNAIS: atgriež VISUS līmeņus admin panelim (ar active + sortOrder)
+app.get("/api/admin/levels", requireAdmin, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id,
+              title,
+              background,
+              target_slot AS "targetSlot",
+              answer,
+              card_html AS "cardHtml",
+              hint1, hint2, hint3,
+              active,
+              sort_order AS "sortOrder",
+              created_at AS "createdAt",
+              updated_at AS "updatedAt"
+       FROM levels
+       ORDER BY sort_order ASC, id ASC`
+    );
+
+    res.json({ ok: true, levels: rows });
+  } catch (err) {
+    console.error("Kļūda GET /api/admin/levels:", err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
 });
 
 // Atjaunina līmeni (v1: tikai active ieslēgšana/izslēgšana)
@@ -136,7 +165,6 @@ app.put("/api/admin/levels/:id", requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, error: "Bad id" });
     }
 
-    // v1: pieņemam tikai { active: true/false }
     const { active } = req.body || {};
     if (typeof active !== "boolean") {
       return res.status(400).json({ ok: false, error: "Body must contain boolean 'active'" });
@@ -161,14 +189,13 @@ app.put("/api/admin/levels/:id", requireAdmin, async (req, res) => {
   }
 });
 
-
-
+// ================== STARTUP ==================
 (async () => {
   try {
     await runMigrations();
     await seedIfEmpty();
   } catch (err) {
-    console.error("Kļūda migrācijās:", err);
+    console.error("Kļūda migrācijās/seed:", err);
     process.exit(1);
   }
 
