@@ -1,236 +1,307 @@
-// admin/admin.js
-// Admin paneļa loģika (v1)
+(() => {
+  // ====== DOM ======
+  const statusLine = document.getElementById("statusLine");
+  const levelsList = document.getElementById("levelsList");
 
-(function () {
-  const isLoginPage = !!document.getElementById("loginForm");
-  const token = localStorage.getItem("ADMIN_TOKEN");
-
-  // ===== Login lapa (/admin) =====
-  if (isLoginPage) {
-    const form = document.getElementById("loginForm");
-    const input = document.getElementById("token");
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const t = (input.value || "").trim();
-
-      if (!t) {
-        alert("Ievadi admin atslēgu");
-        return;
-      }
-
-      localStorage.setItem("ADMIN_TOKEN", t);
-      // Saskan ar server.js maršrutu /admin/panel
-      window.location.href = "/admin/panel";
-    });
-
-    return;
-  }
-
-  // ===== Admin paneļa lapa (/admin/panel) =====
-  if (!token) {
-    alert("Nav admin piekļuves. Lūdzu ielogojies.");
-    window.location.href = "/admin";
-    return;
-  }
-
-  // ===== Logout =====
+  const btnImportSeed = document.getElementById("btnImportSeed");
+  const btnAdd = document.getElementById("btnAdd");
   const btnLogout = document.getElementById("btnLogout");
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      localStorage.removeItem("ADMIN_TOKEN");
-      window.location.href = "/admin";
-    });
-  }
 
-  const levelsListEl = document.getElementById("levelsList");
-  const statusEl = document.getElementById("statusLine");
+  // modal
+  const levelModal = document.getElementById("levelModal");
+  const levelForm = document.getElementById("levelForm");
+  const levelFormError = document.getElementById("levelFormError");
 
+  const $ = (id) => document.getElementById(id);
+
+  const f_id = $("levelId");
+  const f_title = $("f_title");
+  const f_background = $("f_background");
+  const f_targetSlot = $("f_targetSlot");
+  const f_answer = $("f_answer");
+  const f_cardHtml = $("f_cardHtml");
+  const f_hint1 = $("f_hint1");
+  const f_hint2 = $("f_hint2");
+  const f_hint3 = $("f_hint3");
+  const f_sortOrder = $("f_sortOrder");
+  const f_active = $("f_active");
+
+  // ====== state ======
+  let levelsCache = [];
+
+  // ====== utils ======
   function setStatus(msg) {
-    if (statusEl) statusEl.textContent = msg;
+    if (statusLine) statusLine.textContent = msg;
   }
 
-  function escapeHtml(s) {
+  function showError(msg) {
+    levelFormError.textContent = msg;
+    levelFormError.classList.remove("hidden");
+  }
+  function clearError() {
+    levelFormError.textContent = "";
+    levelFormError.classList.add("hidden");
+  }
+
+  function getToken() {
+    // ja tev tokens ir citādi, pielāgo šeit
+    return localStorage.getItem("adminToken") || "";
+  }
+
+  async function apiJSON(url, opts = {}) {
+    const token = getToken();
+    const headers = {
+      "Content-Type": "application/json",
+      ...(opts.headers || {}),
+    };
+    if (token) headers["x-admin-token"] = token;
+
+    const res = await fetch(url, {
+      ...opts,
+      headers,
+    });
+
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (_) {}
+
+    if (!res.ok) {
+      const msg = data?.error || data?.message || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  function escapeHTML(s) {
     return String(s ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+      .replaceAll('"', "&quot;");
   }
 
-  async function fetchAdminLevels() {
-    setStatus("Ielādēju līmeņus…");
+  // ====== modal open/close ======
+  function openModal(mode, level = null) {
+    clearError();
 
-    let res;
-    try {
-      res = await fetch("/api/admin/levels", {
-        headers: { "x-admin-token": token },
-      });
-    } catch (e) {
-      setStatus("Kļūda: nevaru pieslēgties serverim.");
-      return [];
+    if (mode === "add") {
+      $("levelModalTitle").textContent = "Pievienot līmeni";
+      f_id.value = "";
+      f_title.value = "";
+      f_background.value = "";
+      f_targetSlot.value = 1;
+      f_answer.value = "";
+      f_cardHtml.value = "";
+      f_hint1.value = "";
+      f_hint2.value = "";
+      f_hint3.value = "";
+      f_sortOrder.value = 100;
+      f_active.checked = true;
+    } else {
+      $("levelModalTitle").textContent = `Rediģēt līmeni #${level.id}`;
+      f_id.value = level.id ?? "";
+      f_title.value = level.title ?? "";
+      f_background.value = level.background ?? "";
+      f_targetSlot.value = Number(level.targetSlot ?? 1);
+      f_answer.value = level.answer ?? "";
+      f_cardHtml.value = level.cardHtml ?? "";
+      f_hint1.value = level.hint1 ?? "";
+      f_hint2.value = level.hint2 ?? "";
+      f_hint3.value = level.hint3 ?? "";
+      f_sortOrder.value = (level.sortOrder ?? 100);
+      f_active.checked = !!level.active;
     }
 
-    if (res.status === 401) {
-      alert("Nav piekļuves (nepareiza admin atslēga).");
-      localStorage.removeItem("ADMIN_TOKEN");
-      window.location.href = "/admin";
-      return [];
-    }
-
-    if (res.status === 404) {
-      setStatus("Kļūda: serverī nav GET /api/admin/levels. (Jāpieliek server.js)");
-      return [];
-    }
-
-    const data = await res.json().catch(() => null);
-    if (!data || !data.ok) {
-      setStatus("Kļūda ielādējot līmeņus.");
-      return [];
-    }
-
-    setStatus(`Līmeņi ielādēti: ${data.levels.length}`);
-    return data.levels;
+    levelModal.classList.remove("hidden");
+    levelModal.setAttribute("aria-hidden", "false");
+    setTimeout(() => f_title.focus(), 0);
   }
 
+  function closeModal() {
+    levelModal.classList.add("hidden");
+    levelModal.setAttribute("aria-hidden", "true");
+  }
+
+  levelModal.addEventListener("click", (e) => {
+    const el = e.target;
+    if (el?.dataset?.close) closeModal();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (!levelModal.classList.contains("hidden") && e.key === "Escape") closeModal();
+  });
+
+  // ====== collect payload ======
+  function buildPayload() {
+    const title = f_title.value.trim();
+    const background = f_background.value.trim();
+    const targetSlot = Number(f_targetSlot.value);
+    const answer = f_answer.value.trim();
+
+    if (!title) throw new Error("Title ir obligāts.");
+    if (!Number.isFinite(targetSlot) || targetSlot < 1 || targetSlot > 9) {
+      throw new Error("Target slot jābūt 1..9.");
+    }
+    if (!answer) throw new Error("Answer ir obligāts.");
+
+    const sortOrderRaw = String(f_sortOrder.value ?? "").trim();
+    const sortOrder = sortOrderRaw === "" ? 100 : Number(sortOrderRaw);
+    if (!Number.isFinite(sortOrder)) throw new Error("Sort order jābūt skaitlim.");
+
+    return {
+      title,
+      background: background || null,
+      targetSlot,
+      answer,
+      cardHtml: f_cardHtml.value ?? "",
+      hint1: f_hint1.value ?? "",
+      hint2: f_hint2.value ?? "",
+      hint3: f_hint3.value ?? "",
+      sortOrder,
+      active: !!f_active.checked,
+    };
+  }
+
+  // ====== render list ======
   function renderLevels(levels) {
-    if (!levelsListEl) return;
+    levelsList.innerHTML = "";
 
     if (!levels.length) {
-      levelsListEl.innerHTML =
-        '<div class="level-row"><div class="level-meta"><div class="name">Nav līmeņu</div><div class="desc">DB ir tukša vai /api/admin/levels nav pieejams.</div></div></div>';
+      levelsList.innerHTML = `<div class="muted">Nav līmeņu.</div>`;
       return;
     }
 
-    levelsListEl.innerHTML = levels
-      .map((lvl) => {
-        const active = !!lvl.active;
-        const badge = active ? "ACTIVE" : "INACTIVE";
-        const badgeClass = active ? "badge badge-on" : "badge badge-off";
+    for (const lvl of levels) {
+      const badge = lvl.active
+        ? `<span class="badge badge-on">active</span>`
+        : `<span class="badge badge-off">off</span>`;
 
-        const title = (lvl.title && String(lvl.title).trim()) ? lvl.title : `Līmenis #${lvl.id}`;
-        const sortOrder = (lvl.sortOrder ?? "—");
-
-        return `
-          <div class="level-row" data-id="${lvl.id}" data-active="${active}">
-            <div class="level-meta">
-              <div class="name">${escapeHtml(title)} <span class="${badgeClass}">${badge}</span></div>
-              <div class="desc">bg: ${escapeHtml(lvl.background)} • target: ${lvl.targetSlot} • sort: ${escapeHtml(sortOrder)}</div>
-            </div>
-
-            <button class="btn-toggle" type="button" data-action="toggle">
-              ${active ? "Izslēgt" : "Ieslēgt"}
-            </button>
+      const row = document.createElement("div");
+      row.className = "level-row";
+      row.innerHTML = `
+        <div class="level-meta">
+          <div class="name">
+            #${escapeHTML(lvl.id)} — ${escapeHTML(lvl.title)} ${badge}
           </div>
-        `;
-      })
-      .join("");
+          <div class="desc">
+            sort: ${escapeHTML(lvl.sortOrder)} · slot: ${escapeHTML(lvl.targetSlot)} · bg: ${escapeHTML(lvl.background || "—")}
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn" type="button" data-edit-id="${escapeHTML(lvl.id)}">Edit</button>
+          <button class="btn-toggle" type="button" data-toggle-id="${escapeHTML(lvl.id)}" data-active="${lvl.active ? "1" : "0"}">
+            ${lvl.active ? "Izslēgt" : "Ieslēgt"}
+          </button>
+        </div>
+      `;
+      levelsList.appendChild(row);
+    }
   }
 
-  async function toggleActive(id, newActive) {
-    const res = await fetch(`/api/admin/levels/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-token": token,
-      },
-      body: JSON.stringify({ active: newActive }),
-    });
-
-    if (res.status === 401) {
-      alert("Nav piekļuves (nepareiza admin atslēga).");
-      localStorage.removeItem("ADMIN_TOKEN");
-      window.location.href = "/admin";
-      return false;
-    }
-
-    const data = await res.json().catch(() => null);
-    if (!data || !data.ok) {
-      alert("Neizdevās atjaunināt līmeni.");
-      return false;
-    }
-    return true;
+  async function loadLevels() {
+    setStatus("Ielādēju līmeņus...");
+    const data = await apiJSON("/api/admin/levels");
+    levelsCache = data.levels || [];
+    renderLevels(levelsCache);
+    setStatus(`Līmeņi: ${levelsCache.length}`);
   }
 
-  // ===== Import no seed (vienreizēja operācija) =====
-  const btnImportSeed = document.getElementById("btnImportSeed");
-  if (btnImportSeed) {
-    btnImportSeed.addEventListener("click", async () => {
-      const yes = confirm("Importēt trūkstošos līmeņus no seed/levels.json?");
-      if (!yes) return;
+  // ====== events: list buttons ======
+  levelsList.addEventListener("click", async (e) => {
+    const toggleBtn = e.target.closest("[data-toggle-id]");
+    const editBtn = e.target.closest("[data-edit-id]");
 
-      btnImportSeed.disabled = true;
-      const oldText = btnImportSeed.textContent;
-      btnImportSeed.textContent = "Importēju…";
+    if (toggleBtn) {
+      const id = Number(toggleBtn.dataset.toggleId);
+      const current = toggleBtn.dataset.active === "1";
+      const next = !current;
 
+      toggleBtn.disabled = true;
       try {
-        const res = await fetch("/api/admin/import-seed", {
-          method: "POST",
-          headers: { "x-admin-token": token },
+        await apiJSON(`/api/admin/levels/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({ active: next }),
         });
-
-        if (res.status === 401) {
-          alert("Nav piekļuves (nepareiza admin atslēga).");
-          localStorage.removeItem("ADMIN_TOKEN");
-          window.location.href = "/admin";
-          return;
-        }
-
-        const data = await res.json().catch(() => null);
-        if (!data || !data.ok) {
-          alert("Importa kļūda. Paskaties Railway logs.");
-          return;
-        }
-
-        alert(
-          `Imports pabeigts!\n` +
-            `Seedā kopā: ${data.summary.totalInSeed}\n` +
-            `Ielikti: ${data.summary.inserted}\n` +
-            `Izlaisti (jau bija): ${data.summary.skipped}`
-        );
-
-        const levels = await fetchAdminLevels();
-        renderLevels(levels);
-      } catch (e) {
-        console.error(e);
-        alert("Neizdevās izpildīt importu (skat. Console).");
+        await loadLevels();
+      } catch (err) {
+        alert(err.message || "Neizdevās pārslēgt active.");
       } finally {
-        btnImportSeed.disabled = false;
-        btnImportSeed.textContent = oldText;
+        toggleBtn.disabled = false;
       }
-    });
-  }
+      return;
+    }
 
-  // ===== Toggle klikšķi (event delegation) =====
-  if (levelsListEl) {
-    levelsListEl.addEventListener("click", async (e) => {
-      const btn = e.target.closest('button[data-action="toggle"]');
-      if (!btn) return;
+    if (editBtn) {
+      const id = Number(editBtn.dataset.editId);
+      const lvl = levelsCache.find((x) => Number(x.id) === id);
+      if (!lvl) return;
+      openModal("edit", lvl);
+      return;
+    }
+  });
 
-      const row = btn.closest(".level-row");
-      if (!row) return;
+  // ====== submit modal ======
+  levelForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearError();
 
-      const id = Number(row.dataset.id);
-      const isActive = row.dataset.active === "true";
-      const nextActive = !isActive;
+    const btn = document.getElementById("btnSaveLevel");
+    const prev = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Saglabā...";
 
-      btn.disabled = true;
-      btn.textContent = "…";
+    try {
+      const payload = buildPayload();
+      const id = f_id.value ? Number(f_id.value) : null;
 
-      const ok = await toggleActive(id, nextActive);
-      if (ok) {
-        const levels = await fetchAdminLevels();
-        renderLevels(levels);
+      if (!id) {
+        await apiJSON("/api/admin/levels", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await apiJSON(`/api/admin/levels/${id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
       }
 
+      closeModal();
+      await loadLevels();
+    } catch (err) {
+      showError(err.message || "Neizdevās saglabāt.");
+    } finally {
       btn.disabled = false;
-    });
-  }
+      btn.textContent = prev;
+    }
+  });
 
-  // ===== Start =====
-  (async () => {
-    const levels = await fetchAdminLevels();
-    renderLevels(levels);
-  })();
+  // ====== header buttons ======
+  btnAdd.addEventListener("click", () => openModal("add"));
+
+  btnImportSeed.addEventListener("click", async () => {
+    if (!confirm("Importēt līmeņus no seed? (Pievienos tikai trūkstošos)")) return;
+    try {
+      setStatus("Importēju seed...");
+      const data = await apiJSON("/api/admin/import-seed", { method: "POST" });
+      setStatus(`Seed imports OK. Inserted: ${data?.summary?.inserted ?? 0}, skipped: ${data?.summary?.skipped ?? 0}`);
+      await loadLevels();
+    } catch (err) {
+      alert(err.message || "Seed imports neizdevās.");
+      setStatus("Seed imports neizdevās.");
+    }
+  });
+
+  btnLogout.addEventListener("click", () => {
+    // ja tev ir login lapa ar tokenu, šis ir ok
+    localStorage.removeItem("adminToken");
+    window.location.href = "/admin";
+  });
+
+  // ====== init ======
+  loadLevels().catch((e) => {
+    console.error(e);
+    setStatus("Neizdevās ielādēt līmeņus.");
+  });
 })();
