@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Disku spēle – Admin panelis</title>
+
   <style>
     :root{
       --bg:#0f1220;
@@ -30,30 +31,12 @@
       position:sticky;
       top:0;
       backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       z-index:10;
     }
-    .title{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-    .title h1{
-      margin:0;
-      font-size:18px;
-      font-weight:700;
-    }
-    .title .sub{
-      font-size:12px;
-      color:var(--muted);
-    }
-    .actions{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+    .title h1{ margin:0; font-size:18px; }
+    .sub{ font-size:12px; color:var(--muted); }
+
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; }
     .btn{
       padding:9px 12px;
       border-radius:10px;
@@ -68,311 +51,139 @@
       border-color:transparent;
       color:#081018;
     }
-    .btn.ghost{
-      background:rgba(255,255,255,0.04);
-      border:1px solid var(--border);
-      color:var(--text);
-    }
 
-    .wrap{
-      max-width:980px;
-      margin:0 auto;
-      padding:18px;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:14px;
-    }
+    .wrap{ max-width:980px; margin:0 auto; padding:18px; }
     .card{
       background:var(--card);
       border:1px solid var(--border);
       border-radius:14px;
       padding:16px;
     }
-    .card h2{
-      margin:0 0 10px;
-      font-size:16px;
-    }
-    .muted{ color:var(--muted); font-size:13px; line-height:1.35; }
+    .muted{ color:var(--muted); font-size:13px; }
 
-    .levels{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      margin-top:10px;
-    }
+    .levels{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
     .level-row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:12px;
+      display:flex; justify-content:space-between; align-items:center;
+      gap:12px; padding:12px;
       border-radius:12px;
       border:1px solid rgba(255,255,255,0.12);
       background:rgba(0,0,0,0.18);
     }
-    .level-meta{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width:0;
-    }
-    .level-meta .name{
-      font-weight:700;
-      font-size:14px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .level-meta .desc{
-      font-size:12px;
-      color:var(--muted);
-    }
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-size:11px;
-      padding:2px 8px;
-      border-radius:999px;
-      margin-left:8px;
-      border:1px solid var(--border);
-      opacity:.95;
-      vertical-align:middle;
-    }
+    .level-meta{ min-width:0; }
+    .level-meta .name{ font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .level-meta .desc{ font-size:12px; color:var(--muted); }
+
+    .badge{ font-size:11px; padding:2px 8px; border-radius:999px; margin-left:6px; border:1px solid var(--border); }
     .badge-on{ background: rgba(0,200,100,0.18); }
     .badge-off{ background: rgba(220,120,0,0.18); }
 
-    .btn-toggle{
-      border:1px solid var(--border);
-      background:rgba(255,255,255,0.06);
-      color:var(--text);
-      padding:9px 12px;
-      border-radius:10px;
-      cursor:pointer;
-      font-weight:600;
-      white-space:nowrap;
-    }
-    .btn-toggle:disabled{
-      opacity:.6;
-      cursor:not-allowed;
-    }
+    .btn-toggle{ border:1px solid var(--border); background:rgba(255,255,255,0.06); padding:8px 12px; border-radius:10px; cursor:pointer; }
 
-    .status{
-      color:var(--muted);
-      font-size:13px;
-      margin-top:12px;
-    }
+    .status{ font-size:13px; color:var(--muted); margin-bottom:10px; }
 
-    /* ===== MODAL (Add/Edit) ===== */
+    /* ===== MODAL ===== */
     .hidden{ display:none !important; }
-
-    .modal{
-      position:fixed;
-      inset:0;
-      z-index:999;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-    }
-    .modal__backdrop{
-      position:absolute;
-      inset:0;
-      background:rgba(0,0,0,0.55);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-    }
+    .modal{ position:fixed; inset:0; z-index:999; display:flex; align-items:center; justify-content:center; }
+    .modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,0.6); }
     .modal__card{
       position:relative;
-      width:min(920px, 100%);
-      max-height:calc(100vh - 60px);
+      width:min(920px, 96vw);
+      max-height:90vh;
       overflow:auto;
-      background:rgba(15,18,32,0.98);
+      background:#0f1220;
       border:1px solid var(--border);
       border-radius:16px;
-      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
     }
-    .modal__header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
+    .modal__header, .modal__footer{
       padding:14px 16px;
       border-bottom:1px solid var(--border);
-      position:sticky;
-      top:0;
-      background:rgba(15,18,32,0.98);
-      z-index:2;
+      display:flex; justify-content:space-between; align-items:center;
     }
+    .modal__footer{ border-top:1px solid var(--border); border-bottom:none; }
     .modal__body{ padding:16px; }
-    .modal__footer{
-      display:flex;
-      justify-content:flex-end;
-      gap:10px;
-      padding:14px 16px;
-      border-top:1px solid var(--border);
-      position:sticky;
-      bottom:0;
-      background:rgba(15,18,32,0.98);
-    }
 
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-    .field > span{
-      font-size:12px;
-      color:var(--muted);
-      font-weight:600;
-    }
-    input[type="text"], input[type="number"], textarea{
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,0.16);
+    .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .field span{ font-size:12px; color:var(--muted); }
+    input, textarea{
       background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.18);
       color:var(--text);
+      border-radius:10px;
       padding:10px 12px;
-      outline:none;
     }
-    textarea{ resize:vertical; min-height:92px; }
-    .help{ font-size:12px; color:var(--muted); }
+    textarea{ resize:vertical; }
+    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:720px){ .grid2{ grid-template-columns:1fr; } }
 
     .formError{
-      margin-top:12px;
+      background:rgba(255,80,80,0.15);
+      border:1px solid rgba(255,80,80,0.4);
       padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(255,80,80,0.35);
-      background: rgba(255,80,80,0.12);
-      color: rgba(255,255,255,0.92);
+      border-radius:10px;
       font-size:13px;
-    }
-
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-    @media (max-width: 740px){
-      .grid2{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
+
 <body>
 
-  <header>
-    <div class="title">
-      <h1>Admin panelis</h1>
-      <div class="sub">Šeit pārvaldīsi līmeņus (v1).</div>
-    </div>
+<header>
+  <div class="title">
+    <h1>Admin panelis</h1>
+    <div class="sub">Disku spēle · līmeņu pārvaldība</div>
+  </div>
+  <div class="actions">
+    <button id="btnImportSeed" class="btn">Importēt seed</button>
+    <button id="btnAdd" class="btn primary">+ Pievienot līmeni</button>
+  </div>
+</header>
 
-    <div class="actions">
-      <button id="btnLogout" class="btn" type="button">Iziet</button>
-      <button id="btnImportSeed" class="btn" type="button">Importēt līmeņus no seed</button>
-      <button id="btnAdd" class="btn primary" type="button">+ Pievienot līmeni</button>
-    </div>
-  </header>
+<main class="wrap">
+  <div id="statusLine" class="status">—</div>
+  <section class="card">
+    <h2>Līmeņi</h2>
+    <div id="levelsList" class="levels"></div>
+  </section>
+</main>
 
-  <main class="wrap">
-    <div id="statusLine" class="status" aria-live="polite">—</div>
-
-    <div class="grid" style="margin-top:12px;">
-      <section class="card">
-        <h2>Līmeņi</h2>
-        <div class="muted">
-          Šeit redzi līmeņu sarakstu no DB. Vari ieslēgt/izslēgt līmeņus un rediģēt saturu.
-        </div>
-
-        <!-- Admin JS šeit ieliks sarakstu no /api/admin/levels -->
-        <div id="levelsList" class="levels" aria-label="Līmeņu saraksts"></div>
-      </section>
-    </div>
-  </main>
-
-  <!-- ===== Add/Edit level modal ===== -->
-  <div id="levelModal" class="modal hidden" aria-hidden="true">
-    <div class="modal__backdrop" data-close="1"></div>
-
-    <div class="modal__card" role="dialog" aria-modal="true" aria-labelledby="levelModalTitle">
+<!-- ===== MODAL ===== -->
+<div id="levelModal" class="modal hidden">
+  <div class="modal__backdrop" data-close></div>
+  <div class="modal__card">
+    <form id="levelForm">
       <div class="modal__header">
-        <h2 id="levelModalTitle" style="margin:0;font-size:16px;">Līmenis</h2>
-        <button class="btn ghost" type="button" data-close="1">Aizvērt</button>
+        <h3 id="levelModalTitle">Līmenis</h3>
+        <button type="button" class="btn" data-close>Aizvērt</button>
       </div>
 
-      <form id="levelForm" class="modal__body">
-        <input type="hidden" id="levelId" value="">
+      <div class="modal__body">
+        <input type="hidden" id="levelId">
 
         <div class="grid2">
-          <label class="field">
-            <span>Title</span>
-            <input id="f_title" type="text" placeholder="Uzdevums #1" required>
-          </label>
-
-          <label class="field">
-            <span>Background (fails vai ceļš)</span>
-            <input id="f_background" type="text" placeholder="bg.jpg vai bg/bg1.jpg">
-            <small class="help">Ieteikums: glabā tikai faila nosaukumu, piem. <b>bg1.jpg</b></small>
-          </label>
-
-          <label class="field">
-            <span>Target slot (1–9)</span>
-            <input id="f_targetSlot" type="number" min="1" max="9" required>
-          </label>
-
-          <label class="field">
-            <span>Answer</span>
-            <input id="f_answer" type="text" placeholder="345" required>
-          </label>
-
-          <label class="field">
-            <span>Sort order</span>
-            <input id="f_sortOrder" type="number" step="1" placeholder="100">
-          </label>
-
-          <label class="field" style="flex-direction:row;align-items:center;gap:10px;margin-top:22px;">
-            <input id="f_active" type="checkbox">
-            <span style="font-size:13px;color:var(--text);font-weight:700;">Active</span>
-          </label>
+          <label class="field"><span>Title</span><input id="f_title" required></label>
+          <label class="field"><span>Background</span><input id="f_background"></label>
+          <label class="field"><span>Target slot</span><input id="f_targetSlot" type="number" min="1" max="9"></label>
+          <label class="field"><span>Answer</span><input id="f_answer"></label>
+          <label class="field"><span>Sort order</span><input id="f_sortOrder" type="number"></label>
+          <label class="field"><span>Active</span><input id="f_active" type="checkbox"></label>
         </div>
 
-        <div style="height:12px;"></div>
-
-        <label class="field">
-          <span>Card HTML</span>
-          <textarea id="f_cardHtml" rows="8" placeholder="<p>Teksts...</p>"></textarea>
-        </label>
-
-        <div style="height:12px;"></div>
-
-        <div class="grid2">
-          <label class="field">
-            <span>Hint 1</span>
-            <textarea id="f_hint1" rows="4"></textarea>
-          </label>
-          <label class="field">
-            <span>Hint 2</span>
-            <textarea id="f_hint2" rows="4"></textarea>
-          </label>
-        </div>
-
-        <div style="height:12px;"></div>
-
-        <label class="field">
-          <span>Hint 3</span>
-          <textarea id="f_hint3" rows="4"></textarea>
-        </label>
+        <label class="field"><span>Card HTML</span><textarea id="f_cardHtml" rows="6"></textarea></label>
+        <label class="field"><span>Hint 1</span><textarea id="f_hint1"></textarea></label>
+        <label class="field"><span>Hint 2</span><textarea id="f_hint2"></textarea></label>
+        <label class="field"><span>Hint 3</span><textarea id="f_hint3"></textarea></label>
 
         <div id="levelFormError" class="formError hidden"></div>
+      </div>
 
-        <div class="modal__footer">
-          <button class="btn" type="button" data-close="1">Atcelt</button>
-          <button id="btnSaveLevel" class="btn primary" type="submit">Saglabāt</button>
-        </div>
-      </form>
-    </div>
+      <div class="modal__footer">
+        <button type="button" class="btn" data-close>Atcelt</button>
+        <button id="btnSaveLevel" class="btn primary" type="submit">Saglabāt</button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <script src="admin.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>
