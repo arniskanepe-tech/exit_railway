@@ -5,118 +5,117 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Disku spēle – Admin panelis</title>
 
-  <!-- Admin panelim savs CSS (nākamais fails) -->
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="/admin/admin.css">
 </head>
 
 <body>
 
-<header>
-  <div class="title">
-    <h1>Admin panelis</h1>
-    <div class="sub">Disku spēle · līmeņu pārvaldība</div>
-  </div>
-
-  <div class="actions">
-    <button id="btnLogout" class="btn" type="button">Iziet</button>
-    <button id="btnImportSeed" class="btn" type="button">Importēt seed</button>
-    <button id="btnAdd" class="btn primary" type="button">+ Pievienot līmeni</button>
-  </div>
-</header>
-
-<main class="wrap">
-  <div id="statusLine" class="status" aria-live="polite">—</div>
-
-  <section class="card">
-    <h2>Līmeņi</h2>
-    <div class="muted">
-      Šeit redzi līmeņu sarakstu no DB. Vari ieslēgt/izslēgt un rediģēt saturu.
+  <header>
+    <div class="title">
+      <h1>Admin panelis</h1>
+      <div class="sub">Disku spēle · līmeņu pārvaldība</div>
     </div>
 
-    <div id="levelsList" class="levels" aria-label="Līmeņu saraksts"></div>
-  </section>
-</main>
+    <div class="actions">
+      <button id="btnLogout" class="btn" type="button">Iziet</button>
+      <button id="btnImportSeed" class="btn" type="button">Importēt seed</button>
+      <button id="btnAdd" class="btn primary" type="button">+ Pievienot līmeni</button>
+    </div>
+  </header>
 
-<!-- ===== MODAL ===== -->
-<div id="levelModal" class="modal hidden" aria-hidden="true">
-  <div class="modal__backdrop" data-close></div>
+  <main class="wrap">
+    <div id="statusLine" class="status" aria-live="polite">—</div>
 
-  <div class="modal__card" role="dialog" aria-modal="true" aria-labelledby="levelModalTitle">
-    <form id="levelForm">
-      <div class="modal__header">
-        <h3 id="levelModalTitle">Līmenis</h3>
-        <button type="button" class="btn" data-close>Aizvērt</button>
+    <section class="card">
+      <h2>Līmeņi</h2>
+      <div class="muted">
+        Saraksts no DB. Vari ieslēgt/izslēgt, pievienot un rediģēt līmeņus.
       </div>
 
-      <div class="modal__body">
-        <input type="hidden" id="levelId">
+      <div id="levelsList" class="levels" aria-label="Līmeņu saraksts"></div>
+    </section>
+  </main>
 
-        <div class="grid2">
-          <label class="field">
-            <span>Title</span>
-            <input id="f_title" type="text" required>
-          </label>
+  <!-- ===== MODAL: Add / Edit ===== -->
+  <div id="levelModal" class="modal hidden" aria-hidden="true">
+    <div class="modal__backdrop" data-close></div>
 
-          <label class="field">
-            <span>Background</span>
-            <input id="f_background" type="text" placeholder="piem.: bg/bg1.jpg">
-          </label>
-
-          <label class="field">
-            <span>Target slot</span>
-            <input id="f_targetSlot" type="number" min="1" max="9" required>
-          </label>
-
-          <label class="field">
-            <span>Answer</span>
-            <input id="f_answer" type="text" required>
-          </label>
-
-          <label class="field">
-            <span>Sort order</span>
-            <input id="f_sortOrder" type="number" placeholder="piem.: 10">
-          </label>
-
-          <label class="field checkboxRow">
-            <input id="f_active" type="checkbox">
-            <span>Active</span>
-          </label>
+    <div class="modal__card">
+      <form id="levelForm">
+        <div class="modal__header">
+          <h3 id="levelModalTitle">Līmenis</h3>
+          <button type="button" class="btn ghost" data-close>Aizvērt</button>
         </div>
 
-        <label class="field">
-          <span>Card HTML</span>
-          <textarea id="f_cardHtml" rows="8" placeholder="<p>...</p>"></textarea>
-          <div class="help">Te vari ielīmēt HTML (tiks parādīts uzdevuma kārtī).</div>
-        </label>
+        <div class="modal__body">
+          <input type="hidden" id="levelId" />
 
-        <div class="grid2">
+          <div class="grid2">
+            <label class="field">
+              <span>Title</span>
+              <input id="f_title" type="text" required />
+            </label>
+
+            <label class="field">
+              <span>Background</span>
+              <input id="f_background" type="text" placeholder="piem: bg/bg1.jpg" />
+              <div class="help">Pagaidām ceļš uz failu repo (vēlāk varēsim CDN).</div>
+            </label>
+
+            <label class="field">
+              <span>Target slot (1..9)</span>
+              <input id="f_targetSlot" type="number" min="1" max="9" required />
+            </label>
+
+            <label class="field">
+              <span>Answer</span>
+              <input id="f_answer" type="text" required />
+            </label>
+
+            <label class="field">
+              <span>Sort order</span>
+              <input id="f_sortOrder" type="number" />
+            </label>
+
+            <label class="checkboxRow">
+              <input id="f_active" type="checkbox" />
+              Active
+            </label>
+          </div>
+
           <label class="field">
-            <span>Hint 1</span>
-            <textarea id="f_hint1" rows="4"></textarea>
+            <span>Card HTML</span>
+            <textarea id="f_cardHtml" rows="8" placeholder="<p>...</p>"></textarea>
           </label>
 
-          <label class="field">
-            <span>Hint 2</span>
-            <textarea id="f_hint2" rows="4"></textarea>
-          </label>
+          <div class="grid2">
+            <label class="field">
+              <span>Hint 1</span>
+              <textarea id="f_hint1" rows="4"></textarea>
+            </label>
+
+            <label class="field">
+              <span>Hint 2</span>
+              <textarea id="f_hint2" rows="4"></textarea>
+            </label>
+
+            <label class="field">
+              <span>Hint 3</span>
+              <textarea id="f_hint3" rows="4"></textarea>
+            </label>
+          </div>
+
+          <div id="levelFormError" class="formError hidden"></div>
         </div>
 
-        <label class="field">
-          <span>Hint 3</span>
-          <textarea id="f_hint3" rows="4"></textarea>
-        </label>
-
-        <div id="levelFormError" class="formError hidden"></div>
-      </div>
-
-      <div class="modal__footer">
-        <button type="button" class="btn" data-close>Atcelt</button>
-        <button id="btnSaveLevel" class="btn primary" type="submit">Saglabāt</button>
-      </div>
-    </form>
+        <div class="modal__footer">
+          <button type="button" class="btn ghost" data-close>Atcelt</button>
+          <button id="btnSaveLevel" class="btn primary" type="submit">Saglabāt</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
-<script src="admin.js"></script>
+  <script src="/admin/admin.js"></script>
 </body>
 </html>
