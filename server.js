@@ -90,16 +90,56 @@ app.get("/api/levels/active", async (_req, res) => {
 });
 
 /* ================= ADMIN API ================= */
-app.get("/api/admin/levels", requireAdmin, async (_req, res) => {
+  // Palīgs: pārbaudām vai kolonna eksistē (lai "created_at" nesalauž DB, ja nav)
+  async function columnExists(table, column) {
+    const { rows } = await db.query(
+      `SELECT 1
+       FROM information_schema.columns
+       WHERE table_name = $1 AND column_name = $2
+       LIMIT 1`,
+      [table, column]
+    );
+    return rows.length > 0;
+  }
+
+  let LEVELS_HAS_CREATED_AT = false;
+
+app.get("/api/admin/levels", requireAdmin, async (req, res) => {
+  // order: "sort" | "id" | "created_at"
+  // dir: "asc" | "desc"
+  const orderRaw = String(req.query.order || "sort").toLowerCase();
+  const dirRaw = String(req.query.dir || "asc").toLowerCase();
+
+  const dir = dirRaw === "desc" ? "DESC" : "ASC";
+
+  // allowlist (lai nevar iedot SQL injekciju)
+  let orderBySql = `sort_order ${dir}, id ASC`; // default
+  if (orderRaw === "id") {
+    orderBySql = `id ${dir}`;
+  } else if (orderRaw === "created_at") {
+    // ja nav kolonnas, krītam atpakaļ uz id
+    if (LEVELS_HAS_CREATED_AT) orderBySql = `created_at ${dir}, id ASC`;
+    else orderBySql = `id ${dir}`;
+  } else if (orderRaw === "sort") {
+    orderBySql = `sort_order ${dir}, id ASC`;
+  }
+
+  // SELECT: created_at ieliekam tikai, ja eksistē
+  const createdAtSelect = LEVELS_HAS_CREATED_AT
+    ? `, created_at AS "createdAt"`
+    : ``;
+
   const { rows } = await db.query(
     `SELECT id, title, background,
             target_slot AS "targetSlot",
             answer, card_html AS "cardHtml",
             hint1, hint2, hint3,
             active, sort_order AS "sortOrder"
+            ${createdAtSelect}
      FROM levels
-     ORDER BY sort_order ASC, id ASC`
+     ORDER BY ${orderBySql}`
   );
+
   res.json({ ok: true, levels: rows });
 });
 
@@ -133,32 +173,79 @@ app.post("/api/admin/levels", requireAdmin, async (req, res) => {
   res.json({ ok: true, id: rows[0].id });
 });
 
-app.put("/api/admin/levels/:id", requireAdmin, async (req, res) => {
-  const id = Number(req.params.id);
-  const b = req.body;
+app.post("/api/admin/levels/import-seed", requireAdmin, async (_req, res) => {
+  const seed = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "seed", "levels.json"), "utf8")
+  );
 
-  // toggle-only režīms
-  if (Object.keys(b).length === 1 && typeof b.active === "boolean") {
-    await db.query(
-      `UPDATE levels SET active=$1 WHERE id=$2`,
-      [b.active, id]
+  let inserted = 0;
+  let skipped = 0;
+
+  for (const l of seed) {
+    // skip, ja tāds title+answer jau ir (vienkārša dedupe)
+    const { rows: exist } = await db.query(
+      `SELECT 1 FROM levels WHERE title=$1 AND answer=$2 LIMIT 1`,
+      [l.title ?? "Uzdevums", String(l.answer ?? "")]
     );
-    return res.json({ ok: true });
+    if (exist.length) {
+      skipped++;
+      continue;
+    }
+
+    await db.query(
+      `INSERT INTO levels
+       (title, background, target_slot, answer, card_html,
+        hint1, hint2, hint3, active, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [
+        l.title ?? "Uzdevums",
+        l.background ?? "bg/bg.jpg",
+        Number(l.targetSlot ?? 1),
+        String(l.answer ?? ""),
+        String(l.cardHtml ?? ""),
+        l.hint1 ?? null,
+        l.hint2 ?? null,
+        l.hint3 ?? null,
+        l.active !== false,
+        Number(l.sortOrder ?? 100),
+      ]
+    );
+    inserted++;
   }
 
-  // full update
+  res.json({ ok: true, summary: { inserted, skipped } });
+});
+
+app.post("/api/admin/levels/:id/toggle", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ ok: false, error: "Bad id" });
+
+  await db.query(`UPDATE levels SET active = NOT active WHERE id=$1`, [id]);
+  res.json({ ok: true });
+});
+
+app.put("/api/admin/levels/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ ok: false, error: "Bad id" });
+
+  const b = req.body;
+
+  if (!b.title || !b.answer) {
+    return res.status(400).json({ ok: false, error: "Invalid payload" });
+  }
+
   await db.query(
-    `UPDATE levels SET
-       title=$1,
-       background=$2,
-       target_slot=$3,
-       answer=$4,
-       card_html=$5,
-       hint1=$6,
-       hint2=$7,
-       hint3=$8,
-       active=$9,
-       sort_order=$10
+    `UPDATE levels
+     SET title=$1,
+         background=$2,
+         target_slot=$3,
+         answer=$4,
+         card_html=$5,
+         hint1=$6,
+         hint2=$7,
+         hint3=$8,
+         active=$9,
+         sort_order=$10
      WHERE id=$11`,
     [
       b.title,
@@ -182,6 +269,8 @@ app.put("/api/admin/levels/:id", requireAdmin, async (req, res) => {
 (async () => {
   await runMigrations();
   await seedIfEmpty();
+
+  LEVELS_HAS_CREATED_AT = await columnExists("levels", "created_at");
 
   app.listen(PORT, () => {
     console.log(`Serveris darbojas uz :${PORT}`);
